@@ -1,0 +1,218 @@
+{% comment %}
+  React Testing Block - A modern block powered by React and Vite
+  Now with real Shopify product integration
+{% endcomment %}
+
+<div
+  id="react-testing-block-{{ block.id }}"
+  class="react-testing-block"
+  data-block-id="{{ block.id }}"
+  data-theme-color="{{ block.settings.theme_color }}"
+  data-show-description="{{ block.settings.show_description }}"
+  data-animation-enabled="{{ block.settings.enable_animation }}"
+  data-interaction-type="{{ block.settings.interaction_type }}"
+  data-enable-cart="{{ block.settings.enable_cart_integration }}"
+  data-auto-open-cart="{{ block.settings.auto_open_cart }}"
+  data-add-to-cart-text="{{ block.settings.add_to_cart_text | escape }}"
+  data-custom-properties="{{ block.settings.custom_properties | escape }}"
+  {% if block.settings.product %}
+  data-product-data='{{ block.settings.product | json }}'
+  data-product-id="{{ block.settings.product.id }}"
+  data-product-title="{{ block.settings.product.title | escape }}"
+  data-product-price="{{ block.settings.product.price }}"
+  data-product-available="{{ block.settings.product.available }}"
+  {% endif %}
+  data-debug-info='{"hasProduct": {% if block.settings.product != blank %}true{% else %}false{% endif %}, "productId": "{{ block.settings.product.id | default: "none" }}", "blockId": "{{ block.id }}", "productTitle": "{{ block.settings.product.title | default: "none" | escape }}"}'>
+
+  {% comment %} Fallback content while React loads {% endcomment %}
+  <div class="react-loading-fallback">
+    <div style="padding: 20px; text-align: center; color: {{ block.settings.theme_color }};">
+      <div class="loading-spinner" style="
+        border: 3px solid #f3f3f3;
+        border-top: 3px solid {{ block.settings.theme_color }};
+        border-radius: 50%;
+        width: 30px;
+        height: 30px;
+        animation: spin 1s linear infinite;
+        margin: 0 auto 10px;
+      "></div>
+      <p>Loading interactive content...</p>
+      {% if block.settings.product %}
+        <p><strong>{{ block.settings.product.title }}</strong></p>
+        <p>{{ block.settings.product.price | money }}</p>
+      {% endif %}
+    </div>
+  </div>
+</div>
+
+{% comment %} Pass Shopify cart data to React {% endcomment %}
+<script type="application/json" id="shopify-cart-data-{{ block.id }}">
+  {
+    "cart": {{ cart | json }},
+    "shop": {
+      "currency": "{{ shop.currency }}",
+      "money_format": "{{ shop.money_format }}",
+      "domain": "{{ shop.permanent_domain }}"
+    },
+    "customer": {% if customer %}{{ customer | json }}{% else %}null{% endif %}
+  }
+</script>
+
+{% comment %} Load React bundle built with Vite {% endcomment %}
+<script
+  type="module"
+  src="{{ 'react-testing-block.js' | asset_url }}"
+  defer></script>
+<link rel="stylesheet" href="{{ 'react-testing-block.css' | asset_url }}">
+
+<style>
+  @keyframes spin {
+    0% {
+      transform: rotate(0deg);
+    }
+    100% {
+      transform: rotate(360deg);
+    }
+  }
+
+  .react-testing-block {
+    margin: 1rem 0;
+    border-radius: {{ block.settings.border_radius }}px;
+    {% if block.settings.enable_shadow %}
+      box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+    {% endif %}
+  }
+
+  /* Additional styling for better theme integration */
+  .react-testing-block .react-loading-fallback {
+    background: #f8f9fa;
+    border: 2px solid {{ block.settings.theme_color }};
+    border-radius: {{ block.settings.border_radius }}px;
+  }
+</style>
+
+{% schema %}
+  {
+    "name": "React Testing Block",
+    "target": "section",
+    "settings": [
+      {
+        "type": "header",
+        "content": "Product Settings"
+      },
+      {
+        "type": "product",
+        "id": "product",
+        "label": "Product",
+        "info": "Select a product to display in the React component"
+      },
+      {
+        "type": "text",
+        "id": "title",
+        "label": "Block Title",
+        "default": "Interactive Product Display"
+      },
+      {
+        "type": "checkbox",
+        "id": "show_description",
+        "label": "Show Product Description",
+        "default": true
+      },
+      {
+        "type": "checkbox",
+        "id": "show_variants",
+        "label": "Show Product Variants",
+        "default": true,
+        "info": "Allow customers to select different product variants"
+      },
+      {
+        "type": "header",
+        "content": "Cart Integration"
+      },
+      {
+        "type": "checkbox",
+        "id": "enable_cart_integration",
+        "label": "Enable Cart Integration",
+        "default": true,
+        "info": "Allow adding products to cart directly from this block"
+      },
+      {
+        "type": "checkbox",
+        "id": "auto_open_cart",
+        "label": "Auto-open Cart Drawer",
+        "default": true,
+        "info": "Automatically open cart drawer after adding product"
+      },
+      {
+        "type": "text",
+        "id": "add_to_cart_text",
+        "label": "Add to Cart Button Text",
+        "default": "Add to Cart"
+      },
+      {
+        "type": "header",
+        "content": "Appearance"
+      },
+      {
+        "type": "color",
+        "id": "theme_color",
+        "label": "Theme Color",
+        "default": "#007bff"
+      },
+      {
+        "type": "range",
+        "id": "border_radius",
+        "label": "Border Radius",
+        "min": 0,
+        "max": 20,
+        "step": 2,
+        "default": 8,
+        "unit": "px"
+      },
+      {
+        "type": "checkbox",
+        "id": "enable_shadow",
+        "label": "Enable Drop Shadow",
+        "default": true
+      },
+      {
+        "type": "header",
+        "content": "Interactions"
+      },
+      {
+        "type": "checkbox",
+        "id": "enable_animation",
+        "label": "Enable Animations",
+        "default": true
+      },
+      {
+        "type": "select",
+        "id": "interaction_type",
+        "label": "Interaction Style",
+        "options": [
+          { "value": "hover", "label": "Hover Effects" },
+          { "value": "click", "label": "Click Interactions" },
+          { "value": "both", "label": "Both Hover and Click" }
+        ],
+        "default": "both"
+      },
+      {
+        "type": "checkbox",
+        "id": "enable_wishlist",
+        "label": "Enable Wishlist/Like Button",
+        "default": true
+      },
+      {
+        "type": "header",
+        "content": "Advanced"
+      },
+      {
+        "type": "textarea",
+        "id": "custom_properties",
+        "label": "Custom Cart Properties (JSON)",
+        "info": "Add custom properties to cart items (e.g., {\"gift_wrap\": \"yes\", \"note\": \"Special request\"})",
+        "placeholder": "{\"custom_field\": \"value\"}"
+      }
+    ]
+  }
+{% endschema %}
