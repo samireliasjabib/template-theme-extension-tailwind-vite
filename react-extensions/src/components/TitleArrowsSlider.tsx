@@ -42,6 +42,14 @@ const TitleArrowsSlider: React.FC<TitleArrowsSliderProps> = ({
 
   const displayProducts = convertedProducts.slice(0, maxProducts);
 
+  // Helper function to ensure image is a string
+  const getImageSrc = (image: string | number) => {
+    if (typeof image === 'number') {
+      return `https://via.placeholder.com/300x200?text=Product+${image}`;
+    }
+    return image || 'https://via.placeholder.com/300x200?text=No+Image';
+  };
+
   if (loading) {
     return (
       <div className={cn("w-full", className)}>
@@ -71,36 +79,36 @@ const TitleArrowsSlider: React.FC<TitleArrowsSliderProps> = ({
   return (
     <div className={cn("w-full", className)}>
       {/* Header with Title and Navigation */}
-      <div className="flex items-center justify-between mb-8">
-        <div className="space-y-2">
-          <div className="flex items-center gap-3">
-            <div className={cn("p-2 rounded-lg bg-primary/10", accentColor)}>
-              <Zap className="h-6 w-6" />
+      <div className="flex items-center justify-between mb-10">
+        <div className="space-y-3">
+          <div className="flex items-center gap-4">
+            <div className={cn("p-3 rounded-xl bg-primary/10", accentColor)}>
+              <Zap className="h-7 w-7" />
             </div>
             <h2 className="text-3xl font-bold text-foreground">{title}</h2>
           </div>
           {description && (
-            <p className="text-muted-foreground text-lg ml-14">{description}</p>
+            <p className="text-muted-foreground text-lg ml-16 max-w-lg">{description}</p>
           )}
         </div>
 
         {/* Custom Navigation Buttons */}
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-4">
           <Button
             variant="outline"
             size="icon"
-            className="h-12 w-12 border-2 hover:border-primary hover:bg-primary hover:text-white transition-all duration-300"
+            className="h-14 w-14 border-2 hover:border-primary hover:bg-primary hover:text-white transition-all duration-300 hover:scale-110 shadow-lg"
             onClick={() => api?.scrollPrev()}
           >
-            <ArrowLeft className="h-4 w-4" />
+            <ArrowLeft className="h-5 w-5" />
           </Button>
           <Button
             variant="outline"
             size="icon"
-            className="h-12 w-12 border-2 hover:border-primary hover:bg-primary hover:text-white transition-all duration-300"
+            className="h-14 w-14 border-2 hover:border-primary hover:bg-primary hover:text-white transition-all duration-300 hover:scale-110 shadow-lg"
             onClick={() => api?.scrollNext()}
           >
-            <ArrowRight className="h-4 w-4" />
+            <ArrowRight className="h-5 w-5" />
           </Button>
         </div>
       </div>
@@ -117,13 +125,13 @@ const TitleArrowsSlider: React.FC<TitleArrowsSliderProps> = ({
         <CarouselContent className="-ml-4">
           {displayProducts.map((product, index) => (
             <CarouselItem key={product.id} className="pl-4 md:basis-1/2 lg:basis-1/4">
-              <Card className="group h-full overflow-hidden border transition-all duration-300 hover:shadow-lg hover:border-primary/50">
+              <Card className="group overflow-hidden border shadow-sm bg-white transition-all duration-300 hover:shadow-xl hover:border-primary/50 h-full">
                 {/* Product Image */}
                 <div className="relative overflow-hidden">
                   <img
-                    src={product.image}
+                    src={getImageSrc(product.image)}
                     alt={product.title}
-                    className="h-48 w-full object-cover transition-transform duration-500 group-hover:scale-105"
+                    className="h-56 w-full object-cover transition-transform duration-300 group-hover:scale-105"
                   />
                   
                   {/* Quick Actions Overlay */}
@@ -131,7 +139,7 @@ const TitleArrowsSlider: React.FC<TitleArrowsSliderProps> = ({
                     <Button
                       size="sm"
                       className="bg-white text-black hover:bg-primary hover:text-white transition-all duration-300"
-                      onClick={(e) => {
+                      onClick={async (e) => {
                         e.stopPropagation();
                         await addToCart(product.variants[0]?.id || product.id, 1);
                       }}
@@ -149,17 +157,16 @@ const TitleArrowsSlider: React.FC<TitleArrowsSliderProps> = ({
                 </div>
 
                 {/* Product Info */}
-                <CardContent className="p-4 flex-1 flex flex-col">
-                  <div className="space-y-2 flex-1">
-                    <h3 className="font-semibold text-lg line-clamp-2 group-hover:text-primary transition-colors">
-                      {product.title}
-                    </h3>
-                    
+                <CardContent className="p-4 flex flex-col h-full">
+                  <div className="flex-1 space-y-3">
                     {product.vendor && (
-                      <p className="text-sm text-muted-foreground">
-                        by {product.vendor}
+                      <p className="text-xs text-muted-foreground uppercase tracking-wide">
+                        {product.vendor}
                       </p>
                     )}
+                    <h3 className="text-lg font-semibold line-clamp-2 group-hover:text-primary transition-colors">
+                      {product.title}
+                    </h3>
 
                     {/* Tags */}
                     {product.tags && product.tags.length > 0 && (
@@ -171,38 +178,37 @@ const TitleArrowsSlider: React.FC<TitleArrowsSliderProps> = ({
                         ))}
                       </div>
                     )}
-                  </div>
 
-                  {/* Price and Action */}
-                  <div className="mt-4 space-y-3">
-                    <div className="flex items-center justify-between">
-                      <div>
+                    {/* Price */}
+                    <div className="space-y-1">
+                      <div className="flex items-center gap-2">
                         <span className="text-xl font-bold text-primary">
                           {product.price}
                         </span>
                         {product.compareAtPrice && (
-                          <span className="text-sm text-muted-foreground line-through ml-2">
+                          <span className="text-sm text-muted-foreground line-through">
                             {product.compareAtPrice}
                           </span>
                         )}
                       </div>
                       {product.available && (
-                        <Badge variant="secondary" className="bg-green-100 text-green-700">
+                        <Badge variant="secondary" className="bg-green-100 text-green-700 text-xs">
                           In Stock
                         </Badge>
                       )}
                     </div>
-
-                    <Button 
-                      className="w-full group-hover:bg-primary/90 transition-colors"
-                      onClick={async () => {
-                        await addToCart(product.variants[0]?.id || product.id, 1);
-                      }}
-                    >
-                      <ShoppingCart className="h-4 w-4 mr-2" />
-                      Add to Cart
-                    </Button>
                   </div>
+
+                  {/* Add to Cart Button */}
+                  <Button 
+                    className="w-full h-10 mt-4 bg-primary text-primary-foreground hover:bg-primary/90 transition-all duration-300"
+                    onClick={async () => {
+                      await addToCart(product.variants[0]?.id || product.id, 1);
+                    }}
+                  >
+                    <ShoppingCart className="h-4 w-4 mr-2" />
+                    Add to Cart
+                  </Button>
                 </CardContent>
               </Card>
             </CarouselItem>

@@ -7,6 +7,7 @@ import DotsProductSlider from './DotsProductSlider';
 import TitleArrowsSlider from './TitleArrowsSlider';
 import SideArrowsSlider from './SideArrowsSlider';
 import CenteredTitleSlider from './CenteredTitleSlider';
+import VerticalProductSlider from './VerticalProductSlider';
 import { useShopifyCart } from '../hooks/useShopifyCart';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from './ui/card';
 import { Button } from './ui/button';
@@ -219,6 +220,7 @@ const TestingBlock: React.FC<TestingBlockProps> = ({
 
   // Additional debugging for product data parsing
   if (productData && !product) {
+    
     console.error('❌ Product data exists but failed to parse:', {
       productDataType: typeof productData,
       productDataLength: productData.length,
@@ -307,7 +309,7 @@ const TestingBlock: React.FC<TestingBlockProps> = ({
                   themeColor={themeColor}
                   animationEnabled={animationEnabled}
                   onAddToCart={async (variantId, quantity) => {
-                    return await addToCart(variantId, quantity);
+                    await addToCart(variantId, quantity);
                   }}
                 />
               </div>
@@ -333,20 +335,22 @@ const TestingBlock: React.FC<TestingBlockProps> = ({
         />
 
         {/* Different Slider Variants */}
-        <div className="space-y-16">
+        <div className="space-y-12">
           {/* 1. Dots Navigation Slider */}
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <span className="text-2xl">🎯</span>
+          <Card className="border-2 border-primary/10 bg-gradient-to-br from-white to-primary/5">
+            <CardHeader className="pb-6">
+              <CardTitle className="flex items-center gap-3 text-xl">
+                <div className="p-2 bg-primary/10 rounded-lg">
+                  <span className="text-xl">🎯</span>
+                </div>
                 Slider with Dots Navigation
-                <Badge variant="secondary">Dots</Badge>
+                <Badge variant="secondary" className="ml-auto">Dots</Badge>
               </CardTitle>
-              <CardDescription>
+              <CardDescription className="text-base">
                 Clean slider with dot navigation at the bottom for precise control
               </CardDescription>
             </CardHeader>
-            <CardContent>
+            <CardContent className="pt-0">
               <DotsProductSlider
                 title="Premium Collection"
                 description="Handpicked premium products with dot navigation"
@@ -357,18 +361,20 @@ const TestingBlock: React.FC<TestingBlockProps> = ({
           </Card>
 
           {/* 2. Title with Side Arrows */}
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <span className="text-2xl">⚡</span>
+          <Card className="border-2 border-orange-500/10 bg-gradient-to-br from-white to-orange-50">
+            <CardHeader className="pb-6">
+              <CardTitle className="flex items-center gap-3 text-xl">
+                <div className="p-2 bg-orange-500/10 rounded-lg">
+                  <span className="text-xl">⚡</span>
+                </div>
                 Title with Side Arrows
-                <Badge variant="secondary">Title + Arrows</Badge>
+                <Badge variant="secondary" className="ml-auto bg-orange-100 text-orange-700">Title + Arrows</Badge>
               </CardTitle>
-              <CardDescription>
+              <CardDescription className="text-base">
                 Professional layout with title on left and navigation controls on right
               </CardDescription>
             </CardHeader>
-            <CardContent>
+            <CardContent className="pt-0">
               <TitleArrowsSlider
                 title="Flash Sale"
                 description="Limited time offers with professional navigation"
@@ -379,18 +385,20 @@ const TestingBlock: React.FC<TestingBlockProps> = ({
           </Card>
 
           {/* 3. Large Side Arrows Only */}
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <span className="text-2xl">🎨</span>
+          <Card className="border-2 border-purple-500/10 bg-gradient-to-br from-white to-purple-50">
+            <CardHeader className="pb-6">
+              <CardTitle className="flex items-center gap-3 text-xl">
+                <div className="p-2 bg-purple-500/10 rounded-lg">
+                  <span className="text-xl">🎨</span>
+                </div>
                 Large Side Arrows
-                <Badge variant="secondary">Side Arrows</Badge>
+                <Badge variant="secondary" className="ml-auto bg-purple-100 text-purple-700">Side Arrows</Badge>
               </CardTitle>
-              <CardDescription>
+              <CardDescription className="text-base">
                 Minimal design with large floating arrows on each side for clean navigation
               </CardDescription>
             </CardHeader>
-            <CardContent>
+            <CardContent className="pt-0">
               <SideArrowsSlider
                 maxProducts={6}
                 showTitle={true}
@@ -400,18 +408,20 @@ const TestingBlock: React.FC<TestingBlockProps> = ({
           </Card>
 
           {/* 4. Centered Title with Flanking Arrows */}
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <span className="text-2xl">👑</span>
+          <Card className="border-2 border-gradient-to-r from-purple-600/10 to-blue-600/10 bg-gradient-to-br from-white via-purple-50/30 to-blue-50">
+            <CardHeader className="pb-6">
+              <CardTitle className="flex items-center gap-3 text-xl">
+                <div className="p-2 bg-gradient-to-r from-purple-600/10 to-blue-600/10 rounded-lg">
+                  <span className="text-xl">👑</span>
+                </div>
                 Centered Title with Flanking Arrows
-                <Badge variant="secondary">Centered</Badge>
+                <Badge variant="secondary" className="ml-auto bg-gradient-to-r from-purple-100 to-blue-100 text-purple-700">Centered</Badge>
               </CardTitle>
-              <CardDescription>
+              <CardDescription className="text-base">
                 Elegant symmetrical design with centered title and arrows flanking the title
               </CardDescription>
             </CardHeader>
-            <CardContent>
+            <CardContent className="pt-0">
               <CenteredTitleSlider
                 title="Luxury Collection"
                 subtitle="Discover our most exclusive products"
@@ -423,23 +433,91 @@ const TestingBlock: React.FC<TestingBlockProps> = ({
           </Card>
 
           {/* 5. Compact Side Arrows */}
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <span className="text-2xl">📱</span>
+          <Card className="border-2 border-green-500/10 bg-gradient-to-br from-white to-green-50">
+            <CardHeader className="pb-6">
+              <CardTitle className="flex items-center gap-3 text-xl">
+                <div className="p-2 bg-green-500/10 rounded-lg">
+                  <span className="text-xl">📱</span>
+                </div>
                 Compact Navigation
-                <Badge variant="secondary">Compact</Badge>
+                <Badge variant="secondary" className="ml-auto bg-green-100 text-green-700">Compact</Badge>
               </CardTitle>
-              <CardDescription>
+              <CardDescription className="text-base">
                 Space-efficient compact slider perfect for mobile and tight layouts
               </CardDescription>
             </CardHeader>
-            <CardContent>
+            <CardContent className="pt-0">
               <SideArrowsSlider
                 maxProducts={8}
                 showTitle={false}
                 compact={true}
               />
+            </CardContent>
+          </Card>
+
+          {/* 6. Vertical Slider */}
+          <Card className="border-2 border-blue-500/10 bg-gradient-to-br from-white to-blue-50">
+            <CardHeader className="pb-6">
+              <CardTitle className="flex items-center gap-3 text-xl">
+                <div className="p-2 bg-blue-500/10 rounded-lg">
+                  <span className="text-xl">🔄</span>
+                </div>
+                Vertical Product Slider
+                <Badge variant="secondary" className="ml-auto bg-blue-100 text-blue-700">Vertical</Badge>
+              </CardTitle>
+              <CardDescription className="text-base">
+                Unique vertical scrolling layout perfect for sidebar displays and compact spaces
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="pt-0">
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+                {/* Standard Vertical */}
+                <div className="bg-white/50 rounded-lg p-4 border border-blue-100">
+                  <div className="flex items-center gap-2 mb-4">
+                    <div className="w-2 h-2 bg-blue-500 rounded-full"></div>
+                    <h5 className="text-sm font-semibold text-blue-700">Standard</h5>
+                  </div>
+                  <VerticalProductSlider
+                    title="Featured"
+                    maxProducts={4}
+                    height="h-96"
+                    showPrice={true}
+                    showRating={true}
+                  />
+                </div>
+
+                {/* Compact Vertical */}
+                <div className="bg-white/50 rounded-lg p-4 border border-blue-100">
+                  <div className="flex items-center gap-2 mb-4">
+                    <div className="w-2 h-2 bg-green-500 rounded-full"></div>
+                    <h5 className="text-sm font-semibold text-green-700">Compact</h5>
+                  </div>
+                  <VerticalProductSlider
+                    title="Quick Picks"
+                    maxProducts={6}
+                    height="h-80"
+                    showPrice={true}
+                    showRating={false}
+                    compact={true}
+                  />
+                </div>
+
+                {/* Minimal Vertical */}
+                <div className="bg-white/50 rounded-lg p-4 border border-blue-100">
+                  <div className="flex items-center gap-2 mb-4">
+                    <div className="w-2 h-2 bg-purple-500 rounded-full"></div>
+                    <h5 className="text-sm font-semibold text-purple-700">Minimal</h5>
+                  </div>
+                  <VerticalProductSlider
+                    title="Trending"
+                    maxProducts={5}
+                    height="h-72"
+                    showPrice={false}
+                    showRating={false}
+                    compact={true}
+                  />
+                </div>
+              </div>
             </CardContent>
           </Card>
         </div>

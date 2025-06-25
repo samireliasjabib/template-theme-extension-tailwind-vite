@@ -69,7 +69,7 @@ const ModernProductCard: React.FC<ModernProductCardProps> = ({
       {/* Product Image */}
       <div className="relative overflow-hidden">
         <img
-          src={product.image}
+          src={'https://www.google.com/url?sa=i&url=https%3A%2F%2Fwww.goodhousekeeping.com%2Flife%2Fpets%2Fg4531%2Fcutest-dog-breeds%2F&psig=AOvVaw3qglI8ET_NmRbbxffH92v4&ust=1750924739543000&source=images&cd=vfe&opi=89978449&ved=0CBQQjRxqFwoTCLCKyoqNjI4DFQAAAAAdAAAAABAE'}
           alt={product.title}
           className={cn(
             "h-48 w-full object-cover transition-transform duration-300",

@@ -3,7 +3,7 @@
 client_id = "9db355888f27c083071def35f3a1c226"
 name = "testing-react-extension"
 handle = "testing-react-extension"
-application_url = "https://mainstream-ebooks-reduced-viewing.trycloudflare.com"
+application_url = "https://turbo-canadian-advocacy-impressive.trycloudflare.com"
 embedded = true
 
 [build]
@@ -27,9 +27,9 @@ scopes = "write_products"
 
 [auth]
 redirect_urls = [
-  "https://mainstream-ebooks-reduced-viewing.trycloudflare.com/auth/callback",
-  "https://mainstream-ebooks-reduced-viewing.trycloudflare.com/auth/shopify/callback",
-  "https://mainstream-ebooks-reduced-viewing.trycloudflare.com/api/auth/callback"
+  "https://turbo-canadian-advocacy-impressive.trycloudflare.com/auth/callback",
+  "https://turbo-canadian-advocacy-impressive.trycloudflare.com/auth/shopify/callback",
+  "https://turbo-canadian-advocacy-impressive.trycloudflare.com/api/auth/callback"
 ]
 
 [pos]

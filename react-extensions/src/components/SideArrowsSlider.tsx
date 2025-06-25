@@ -10,6 +10,7 @@ import {
 } from './ui/carousel';
 import { cn } from '../lib/utils';
 import { useShopifyProducts } from '../hooks/useShopifyProducts';
+import { useShopifyCart } from '../hooks/useShopifyCart';
 import { ShoppingCart, ChevronLeft, ChevronRight } from 'lucide-react';
 
 interface SideArrowsSliderProps {
@@ -35,7 +36,17 @@ const SideArrowsSlider: React.FC<SideArrowsSliderProps> = ({
     hasProducts,
   } = useShopifyProducts(true);
 
+  const { addToCart } = useShopifyCart();
+
   const displayProducts = convertedProducts.slice(0, maxProducts);
+
+  // Helper function to ensure image is a string
+  const getImageSrc = (image: string | number) => {
+    if (typeof image === 'number') {
+      return `https://via.placeholder.com/300x200?text=Product+${image}`;
+    }
+    return image || 'https://via.placeholder.com/300x200?text=No+Image';
+  };
 
   if (loading) {
     return (
@@ -69,21 +80,19 @@ const SideArrowsSlider: React.FC<SideArrowsSliderProps> = ({
         }}
         className="w-full"
       >
-        <CarouselContent className="px-16">
+        <CarouselContent className="-ml-4">
           {displayProducts.map((product, index) => (
             <CarouselItem key={product.id} className={cn(
+              "pl-4",
               compact ? "md:basis-1/2 lg:basis-1/3" : "md:basis-1/2 lg:basis-1/3 xl:basis-1/4"
             )}>
-              <Card className="group overflow-hidden border-0 shadow-xl bg-gradient-to-b from-white to-gray-50 transition-all duration-500 hover:shadow-2xl hover:scale-105">
+              <Card className="group overflow-hidden border shadow-sm bg-white transition-all duration-300 hover:shadow-xl hover:border-primary/50 h-full">
                 {/* Product Image */}
                 <div className="relative overflow-hidden">
                   <img
-                    src={product.image}
+                    src={getImageSrc(product.image)}
                     alt={product.title}
-                    className={cn(
-                      "w-full object-cover transition-all duration-700 group-hover:scale-110 group-hover:brightness-110",
-                      compact ? "h-40" : "h-64"
-                    )}
+                    className="h-56 w-full object-cover transition-transform duration-300 group-hover:scale-105"
                   />
                   
                   {/* Floating Price Badge */}
@@ -100,69 +109,25 @@ const SideArrowsSlider: React.FC<SideArrowsSliderProps> = ({
                     </Badge>
                   )}
 
-                  {/* Hover Overlay */}
-                  <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500">
-                    <div className="absolute bottom-4 left-4 right-4">
-                      <Button 
-                        className="w-full bg-white/90 text-black hover:bg-white hover:scale-105 transition-all duration-300 font-semibold"
-                        onClick={() => {
-                          console.log(`Adding ${product.title} to cart`);
-                        }}
-                      >
-                        <ShoppingCart className="h-4 w-4 mr-2" />
-                        Quick Add
-                      </Button>
-                    </div>
-                  </div>
                 </div>
 
                 {/* Product Info */}
-                <CardContent className={cn("p-4", compact && "p-3")}>
-                  <div className="space-y-2">
-                    {showTitle && (
-                      <h3 className={cn(
-                        "font-bold line-clamp-2 group-hover:text-primary transition-colors",
-                        compact ? "text-sm" : "text-lg"
-                      )}>
-                        {product.title}
-                      </h3>
-                    )}
-                    
+                <CardContent className="p-4 flex flex-col h-full">
+                  <div className="flex-1 space-y-3">
                     {product.vendor && (
-                      <p className={cn(
-                        "text-muted-foreground uppercase tracking-wider font-medium",
-                        compact ? "text-xs" : "text-sm"
-                      )}>
+                      <p className="text-xs text-muted-foreground uppercase tracking-wide">
                         {product.vendor}
                       </p>
                     )}
-
-                    {!compact && (
-                      <div className="flex items-center justify-between">
-                        <div className="space-y-1">
-                          <div className="flex items-center gap-2">
-                            <span className="text-xl font-bold text-primary">
-                              {product.price}
-                            </span>
-                            {product.compareAtPrice && (
-                              <span className="text-sm text-muted-foreground line-through">
-                                {product.compareAtPrice}
-                              </span>
-                            )}
-                          </div>
-                        </div>
-                        
-                        {product.available && (
-                          <Badge variant="secondary" className="bg-green-100 text-green-700 text-xs">
-                            Available
-                          </Badge>
-                        )}
-                      </div>
+                    {showTitle && (
+                      <h3 className="text-lg font-semibold line-clamp-2 group-hover:text-primary transition-colors">
+                        {product.title}
+                      </h3>
                     )}
 
-                    {/* Tags for non-compact version */}
-                    {!compact && product.tags && product.tags.length > 0 && (
-                      <div className="flex flex-wrap gap-1 pt-2">
+                    {/* Tags */}
+                    {product.tags && product.tags.length > 0 && (
+                      <div className="flex flex-wrap gap-1">
                         {product.tags.slice(0, 2).map((tag) => (
                           <Badge key={tag} variant="outline" className="text-xs">
                             {tag}
@@ -170,28 +135,58 @@ const SideArrowsSlider: React.FC<SideArrowsSliderProps> = ({
                         ))}
                       </div>
                     )}
+
+                    {/* Price */}
+                    <div className="space-y-1">
+                      <div className="flex items-center gap-2">
+                        <span className="text-xl font-bold text-primary">
+                          {product.price}
+                        </span>
+                        {product.compareAtPrice && (
+                          <span className="text-sm text-muted-foreground line-through">
+                            {product.compareAtPrice}
+                          </span>
+                        )}
+                      </div>
+                      {product.available && (
+                        <Badge variant="secondary" className="bg-green-100 text-green-700 text-xs">
+                          Available
+                        </Badge>
+                      )}
+                    </div>
                   </div>
+
+                  {/* Add to Cart Button */}
+                  <Button 
+                    className="w-full h-10 mt-4 bg-primary text-primary-foreground hover:bg-primary/90 transition-all duration-300"
+                    onClick={async () => {
+                      await addToCart(product.variants[0]?.id || product.id, 1);
+                    }}
+                  >
+                    <ShoppingCart className="h-4 w-4 mr-2" />
+                    Add to Cart
+                  </Button>
                 </CardContent>
               </Card>
             </CarouselItem>
           ))}
         </CarouselContent>
 
-        {/* Large Custom Side Arrows */}
+        {/* Enhanced Large Custom Side Arrows */}
         <Button
           variant="outline"
-          className="absolute left-2 top-1/2 transform -translate-y-1/2 w-14 h-14 bg-white/95 border-2 border-gray-200 hover:border-primary hover:bg-primary hover:text-white shadow-xl backdrop-blur-sm transition-all duration-300 hover:scale-110"
+          className="absolute -left-4 top-1/2 transform -translate-y-1/2 w-16 h-16 bg-white/95 border-2 border-gray-200 hover:border-primary hover:bg-primary hover:text-white shadow-2xl backdrop-blur-sm transition-all duration-300 hover:scale-110 rounded-full z-10"
           onClick={() => api?.scrollPrev()}
         >
-          <ChevronLeft className="h-6 w-6" />
+          <ChevronLeft className="h-7 w-7" />
         </Button>
         
         <Button
           variant="outline"
-          className="absolute right-2 top-1/2 transform -translate-y-1/2 w-14 h-14 bg-white/95 border-2 border-gray-200 hover:border-primary hover:bg-primary hover:text-white shadow-xl backdrop-blur-sm transition-all duration-300 hover:scale-110"
+          className="absolute -right-4 top-1/2 transform -translate-y-1/2 w-16 h-16 bg-white/95 border-2 border-gray-200 hover:border-primary hover:bg-primary hover:text-white shadow-2xl backdrop-blur-sm transition-all duration-300 hover:scale-110 rounded-full z-10"
           onClick={() => api?.scrollNext()}
         >
-          <ChevronRight className="h-6 w-6" />
+          <ChevronRight className="h-7 w-7" />
         </Button>
       </Carousel>
 

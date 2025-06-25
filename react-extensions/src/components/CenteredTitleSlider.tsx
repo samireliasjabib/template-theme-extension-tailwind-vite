@@ -10,6 +10,7 @@ import {
 } from './ui/carousel';
 import { cn } from '../lib/utils';
 import { useShopifyProducts } from '../hooks/useShopifyProducts';
+import { useShopifyCart } from '../hooks/useShopifyCart';
 import { ShoppingCart, Heart, Star, ArrowLeft, ArrowRight } from 'lucide-react';
 
 interface CenteredTitleSliderProps {
@@ -39,7 +40,17 @@ const CenteredTitleSlider: React.FC<CenteredTitleSliderProps> = ({
     hasProducts,
   } = useShopifyProducts(true);
 
+  const { addToCart } = useShopifyCart();
+
   const displayProducts = convertedProducts.slice(0, maxProducts);
+
+  // Helper function to ensure image is a string
+  const getImageSrc = (image: string | number) => {
+    if (typeof image === 'number') {
+      return `https://via.placeholder.com/300x200?text=Product+${image}`;
+    }
+    return image || 'https://via.placeholder.com/300x200?text=No+Image';
+  };
 
   if (loading) {
     return (
@@ -120,16 +131,16 @@ const CenteredTitleSlider: React.FC<CenteredTitleSliderProps> = ({
         }}
         className="w-full"
       >
-        <CarouselContent className="-ml-6">
+        <CarouselContent className="-ml-4">
           {displayProducts.map((product, index) => (
-            <CarouselItem key={product.id} className="pl-6 md:basis-1/2 lg:basis-1/4">
-              <Card className="group relative overflow-hidden border-0 shadow-xl bg-white transition-all duration-700 hover:shadow-2xl hover:-translate-y-4 hover:rotate-1">
+            <CarouselItem key={product.id} className="pl-4 md:basis-1/2 lg:basis-1/4">
+              <Card className="group overflow-hidden border shadow-sm bg-white transition-all duration-300 hover:shadow-xl hover:border-primary/50 h-full">
                 {/* Product Image */}
                 <div className="relative overflow-hidden">
                   <img
-                    src={product.image}
+                    src={getImageSrc(product.image)}
                     alt={product.title}
-                    className="h-56 w-full object-cover transition-all duration-700 group-hover:scale-125 group-hover:brightness-105"
+                    className="h-56 w-full object-cover transition-transform duration-300 group-hover:scale-105"
                   />
                   
                   {/* Gradient Overlay */}
@@ -158,32 +169,19 @@ const CenteredTitleSlider: React.FC<CenteredTitleSliderProps> = ({
                     </Badge>
                   )}
 
-                  {/* Quick Add Button (appears on hover) */}
-                  <div className="absolute bottom-4 left-4 right-4 opacity-0 group-hover:opacity-100 transition-all duration-500 transform translate-y-4 group-hover:translate-y-0">
-                    <Button 
-                      className="w-full bg-white/95 text-black hover:bg-white hover:scale-105 transition-all duration-300 font-semibold shadow-lg"
-                      onClick={() => {
-                        console.log(`Adding ${product.title} to cart`);
-                      }}
-                    >
-                      <ShoppingCart className="h-4 w-4 mr-2" />
-                      Quick Add
-                    </Button>
-                  </div>
                 </div>
 
                 {/* Product Info */}
-                <CardContent className="p-6 space-y-4">
-                  <div className="space-y-2">
-                    <h3 className="font-bold text-lg line-clamp-2 group-hover:text-primary transition-colors">
-                      {product.title}
-                    </h3>
-                    
+                <CardContent className="p-4 flex flex-col h-full">
+                  <div className="flex-1 space-y-3">
                     {product.vendor && (
-                      <p className="text-sm text-muted-foreground uppercase tracking-wide font-medium">
+                      <p className="text-xs text-muted-foreground uppercase tracking-wide">
                         {product.vendor}
                       </p>
                     )}
+                    <h3 className="text-lg font-semibold line-clamp-2 group-hover:text-primary transition-colors">
+                      {product.title}
+                    </h3>
 
                     {/* Rating */}
                     {showRating && (
@@ -192,55 +190,47 @@ const CenteredTitleSlider: React.FC<CenteredTitleSliderProps> = ({
                           <Star 
                             key={i} 
                             className={cn(
-                              "h-4 w-4",
+                              "h-3 w-3",
                               i < 4 ? "fill-yellow-400 text-yellow-400" : "text-gray-300"
                             )} 
                           />
                         ))}
-                        <span className="text-sm text-muted-foreground ml-1">
+                        <span className="text-xs text-muted-foreground ml-1">
                           (4.{Math.floor(Math.random() * 9) + 1})
                         </span>
                       </div>
                     )}
-                  </div>
 
-                  {/* Price */}
-                  <div className="flex items-center justify-between">
+                    {/* Price */}
                     <div className="space-y-1">
                       <div className="flex items-center gap-2">
-                        <span className="text-2xl font-bold text-primary">
+                        <span className="text-xl font-bold text-primary">
                           {product.price}
                         </span>
                         {product.compareAtPrice && (
-                          <span className="text-lg text-muted-foreground line-through">
+                          <span className="text-sm text-muted-foreground line-through">
                             {product.compareAtPrice}
                           </span>
                         )}
                       </div>
-                      {product.priceVaries && product.priceMax && (
-                        <p className="text-sm text-muted-foreground">
-                          Up to {product.priceMax}
-                        </p>
+                      {product.available && (
+                        <Badge variant="secondary" className="bg-green-100 text-green-700 text-xs">
+                          In Stock
+                        </Badge>
                       )}
                     </div>
-
-                    {product.available && (
-                      <Badge variant="secondary" className="bg-green-100 text-green-700">
-                        In Stock
-                      </Badge>
-                    )}
                   </div>
 
-                  {/* Tags */}
-                  {product.tags && product.tags.length > 0 && (
-                    <div className="flex flex-wrap gap-1">
-                      {product.tags.slice(0, 2).map((tag) => (
-                        <Badge key={tag} variant="outline" className="text-xs">
-                          {tag}
-                        </Badge>
-                      ))}
-                    </div>
-                  )}
+                  {/* Add to Cart Button */}
+                  <Button 
+                    className="w-full h-10 mt-4 bg-primary text-primary-foreground hover:bg-primary/90 transition-all duration-300"
+                    onClick={async () => {
+                      await addToCart(product.variants[0]?.id || product.id, 1);
+                    }}
+                  >
+                    <ShoppingCart className="h-4 w-4 mr-2" />
+                    Add to Cart
+                  </Button>
                 </CardContent>
               </Card>
             </CarouselItem>

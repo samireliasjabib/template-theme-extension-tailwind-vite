@@ -45,6 +45,14 @@ const DotsProductSlider: React.FC<DotsProductSliderProps> = ({
 
   const displayProducts = convertedProducts.slice(0, maxProducts);
 
+  // Helper function to ensure image is a string
+  const getImageSrc = (image: string | number) => {
+    if (typeof image === 'number') {
+      return `https://via.placeholder.com/300x200?text=Product+${image}`;
+    }
+    return image || 'https://via.placeholder.com/300x200?text=No+Image';
+  };
+
   React.useEffect(() => {
     if (!api) {
       return;
@@ -93,11 +101,12 @@ const DotsProductSlider: React.FC<DotsProductSliderProps> = ({
   return (
     <div className={cn("w-full", className)}>
       {/* Header */}
-      <div className="mb-8 text-center">
-        <h2 className="text-3xl font-bold text-foreground mb-2">{title}</h2>
+      <div className="mb-10 text-center">
+        <h2 className="text-3xl font-bold text-foreground mb-3">{title}</h2>
         {description && (
-          <p className="text-muted-foreground text-lg">{description}</p>
+          <p className="text-muted-foreground text-lg max-w-2xl mx-auto">{description}</p>
         )}
+        <div className="w-20 h-1 bg-gradient-to-r from-primary to-purple-500 mx-auto mt-4 rounded-full" />
       </div>
 
       {/* Carousel */}
@@ -109,16 +118,16 @@ const DotsProductSlider: React.FC<DotsProductSliderProps> = ({
         }}
         className="w-full"
       >
-        <CarouselContent>
+        <CarouselContent className="-ml-4">
           {displayProducts.map((product, index) => (
-            <CarouselItem key={product.id} className="md:basis-1/2 lg:basis-1/3">
-              <Card className="group overflow-hidden border-0 shadow-lg bg-white transition-all duration-500 hover:shadow-2xl hover:-translate-y-3">
+            <CarouselItem key={product.id} className="pl-4 md:basis-1/2 lg:basis-1/3">
+              <Card className="group overflow-hidden border shadow-sm bg-white transition-all duration-300 hover:shadow-xl hover:border-primary/50 h-full">
                 {/* Product Image */}
                 <div className="relative overflow-hidden">
                   <img
-                    src={product.image}
+                    src={getImageSrc(product.image)}
                     alt={product.title}
-                    className="h-72 w-full object-cover transition-transform duration-700 group-hover:scale-110"
+                    className="h-56 w-full object-cover transition-transform duration-300 group-hover:scale-105"
                   />
                   
                   {/* Floating Action Buttons */}
@@ -156,16 +165,16 @@ const DotsProductSlider: React.FC<DotsProductSliderProps> = ({
                 </div>
 
                 {/* Product Info */}
-                <CardHeader className="pb-4">
-                  <div className="space-y-2">
+                <CardContent className="p-4 flex flex-col h-full">
+                  <div className="flex-1 space-y-3">
                     {product.vendor && (
-                      <p className="text-sm text-muted-foreground uppercase tracking-wide">
+                      <p className="text-xs text-muted-foreground uppercase tracking-wide">
                         {product.vendor}
                       </p>
                     )}
-                    <CardTitle className="text-xl line-clamp-2 group-hover:text-primary transition-colors">
+                    <h3 className="text-lg font-semibold line-clamp-2 group-hover:text-primary transition-colors">
                       {product.title}
-                    </CardTitle>
+                    </h3>
                     
                     {/* Rating */}
                     <div className="flex items-center gap-1">
@@ -173,34 +182,30 @@ const DotsProductSlider: React.FC<DotsProductSliderProps> = ({
                         <Star 
                           key={i} 
                           className={cn(
-                            "h-4 w-4",
+                            "h-3 w-3",
                             i < 4 ? "fill-yellow-400 text-yellow-400" : "text-gray-300"
                           )} 
                         />
                       ))}
-                      <span className="text-sm text-muted-foreground ml-1">
+                      <span className="text-xs text-muted-foreground ml-1">
                         (4.{Math.floor(Math.random() * 9) + 1})
                       </span>
                     </div>
-                  </div>
-                </CardHeader>
 
-                <CardContent className="pt-0">
-                  {/* Price */}
-                  <div className="flex items-center justify-between mb-4">
+                    {/* Price */}
                     <div className="space-y-1">
                       <div className="flex items-center gap-2">
-                        <span className="text-2xl font-bold text-primary">
+                        <span className="text-xl font-bold text-primary">
                           {product.price}
                         </span>
                         {product.compareAtPrice && (
-                          <span className="text-lg text-muted-foreground line-through">
+                          <span className="text-sm text-muted-foreground line-through">
                             {product.compareAtPrice}
                           </span>
                         )}
                       </div>
                       {product.priceVaries && product.priceMax && (
-                        <p className="text-sm text-muted-foreground">
+                        <p className="text-xs text-muted-foreground">
                           Up to {product.priceMax}
                         </p>
                       )}
@@ -209,12 +214,12 @@ const DotsProductSlider: React.FC<DotsProductSliderProps> = ({
 
                   {/* Add to Cart Button */}
                   <Button 
-                    className="w-full h-12 text-lg font-semibold bg-black text-white hover:bg-gray-800 transition-all duration-300 transform group-hover:scale-105"
+                    className="w-full h-10 mt-4 bg-primary text-primary-foreground hover:bg-primary/90 transition-all duration-300"
                     onClick={async () => {
                       await addToCart(product.variants[0]?.id || product.id, 1);
                     }}
                   >
-                    <ShoppingCart className="h-5 w-5 mr-2" />
+                    <ShoppingCart className="h-4 w-4 mr-2" />
                     Add to Cart
                   </Button>
                 </CardContent>
