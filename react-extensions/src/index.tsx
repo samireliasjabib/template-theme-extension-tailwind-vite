@@ -48,7 +48,6 @@ function initializeReactBlocks() {
           showDescription={showDescription}
           animationEnabled={animationEnabled}
           interactionType={interactionType}
-          productData={productData}
         />
       );
 
