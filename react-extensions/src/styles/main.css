@@ -183,3 +183,28 @@
 .modern-section h4 {
   @apply text-lg font-semibold text-primary mb-4;
 }
+
+/* Cart Drawer Overlay - High specificity to override theme styles */
+[data-radix-popper-content-wrapper],
+[data-radix-dialog-overlay] {
+  z-index: 9999 !important;
+}
+
+/* Shopify Cart Drawer Override */
+.react-cart-drawer-overlay {
+  position: fixed !important;
+  top: 0 !important;
+  left: 0 !important;
+  right: 0 !important;
+  bottom: 0 !important;
+  background-color: rgba(0, 0, 0, 0.6) !important;
+  z-index: 9999 !important;
+  pointer-events: auto !important;
+  display: block !important;
+}
+
+.react-cart-drawer-content {
+  position: fixed !important;
+  z-index: 10000 !important;
+  pointer-events: auto !important;
+}

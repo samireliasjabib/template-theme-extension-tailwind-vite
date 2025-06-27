@@ -59,10 +59,14 @@ export function CartDrawer({ isOpen, onClose }: CartDrawerProps) {
   };
 
   return (
-    <Sheet open={isOpen} onOpenChange={onClose}>
-      <SheetContent className="w-full sm:max-w-md flex flex-col">
+    <Sheet open={isOpen} onOpenChange={(open) => {
+      if (!open) {
+        onClose();
+      }
+    }}>
+      <SheetContent side="right" className="w-full sm:max-w-lg flex flex-col p-0">
         {/* Header */}
-        <SheetHeader className="space-y-0 pb-4 border-b">
+        <SheetHeader className="space-y-0 p-6 pb-4 border-b">
           <div className="flex items-center gap-2">
             <ShoppingBag className="h-5 w-5" />
             <SheetTitle className="text-left">
@@ -77,7 +81,7 @@ export function CartDrawer({ isOpen, onClose }: CartDrawerProps) {
         </SheetHeader>
 
         {/* Content */}
-        <div className="flex-1 overflow-y-auto py-4">
+        <div className="flex-1 overflow-y-auto px-6 py-4">
           {loading ? (
             <div className="flex items-center justify-center h-32">
               <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
@@ -106,7 +110,7 @@ export function CartDrawer({ isOpen, onClose }: CartDrawerProps) {
 
         {/* Footer */}
         {cart && cart.items.length > 0 && (
-          <SheetFooter className="pt-4 border-t flex-col space-y-4">
+          <SheetFooter className="p-6 pt-4 border-t flex-col space-y-4">
             <CartFooter 
               cart={cart}
               onCheckout={handleCheckout}

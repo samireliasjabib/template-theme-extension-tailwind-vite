@@ -122,7 +122,10 @@ export function GlobalCartDrawer() {
     // Listen for add to cart events to auto-open drawer
     const handleAddToCart = (e: Event) => {
       console.log('🛒 Item added to cart, opening drawer...');
-      setTimeout(() => openDrawer(), 500); // Small delay to let cart update
+      setTimeout(() => {
+        console.log('🛒 Opening drawer after add to cart');
+        openDrawer();
+      }, 500); // Small delay to let cart update
     };
 
     document.addEventListener('cart:added', handleAddToCart);
