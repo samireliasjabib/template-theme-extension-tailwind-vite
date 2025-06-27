@@ -1,8 +1,9 @@
 import React, { useState } from 'react';
-import { ShoppingBag, Plus, Minus, Trash2 } from 'lucide-react';
+import { ShoppingBag, Plus, Minus, Trash2, Loader2 } from 'lucide-react';
 import { Button } from '../ui/button';
 import { Badge } from '../ui/badge';
 import { Card } from '../ui/card';
+import { Progress } from '../ui/progress';
 import { 
   Sheet, 
   SheetContent, 
@@ -11,7 +12,14 @@ import {
   SheetFooter 
 } from '../ui/sheet';
 import { useShopifyCart } from '../../hooks/useShopifyCart';
+import { useCartSeeding } from '../../hooks/useCartSeeding';
 import { formatPrice, formatVariantTitle } from '../../utils/format-helpers';
+import { 
+  formatCartItem, 
+  generateCartItemKey, 
+  sortCartItems,
+  isCartEmpty 
+} from '../../helpers/cart.helpers';
 
 interface CartDrawerProps {
   isOpen: boolean;
@@ -34,7 +42,19 @@ export function CartDrawer({ isOpen, onClose }: CartDrawerProps) {
     refreshCart
   } = useShopifyCart();
 
+  const {
+    isSeeding,
+    hasCompleted,
+    progressPercentage,
+    progressMessage,
+    progressStage,
+    completeSeeding
+  } = useCartSeeding();
+
   const [isUpdating, setIsUpdating] = useState<string | null>(null);
+
+  // Show seeding state when drawer first opens
+  const showSeedingState = isOpen && !hasCompleted && isSeeding;
 
   const handleQuantityUpdate = async (variantId: number, newQuantity: number) => {
     if (newQuantity < 0) return;
@@ -70,7 +90,7 @@ export function CartDrawer({ isOpen, onClose }: CartDrawerProps) {
           <div className="flex items-center gap-2">
             <ShoppingBag className="h-5 w-5" />
             <SheetTitle className="text-left">
-              Shopping Cart
+              AI CartDrawer Seedid.AI
               {itemCount > 0 && (
                 <Badge variant="secondary" className="ml-2">
                   {itemCount}
@@ -82,7 +102,14 @@ export function CartDrawer({ isOpen, onClose }: CartDrawerProps) {
 
         {/* Content */}
         <div className="flex-1 overflow-y-auto px-6 py-4">
-          {loading ? (
+          {showSeedingState ? (
+            <SeedingState 
+              progress={progressPercentage}
+              message={progressMessage}
+              stage={progressStage}
+              onComplete={completeSeeding}
+            />
+          ) : loading ? (
             <div className="flex items-center justify-center h-32">
               <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
             </div>
@@ -101,7 +128,7 @@ export function CartDrawer({ isOpen, onClose }: CartDrawerProps) {
             <EmptyCart onClose={onClose} />
           ) : (
             <CartItems 
-              items={cart.items}
+              items={sortCartItems(cart.items)}
               onQuantityUpdate={handleQuantityUpdate}
               isUpdating={isUpdating}
             />
@@ -310,6 +337,85 @@ function CartFooter({ cart, onCheckout, onClearCart, onClose }: CartFooterProps)
           </Button>
         </div>
       </div>
+    </div>
+  );
+}
+
+/**
+ * Seeding State Component
+ * Shows progress while cart drawer is initializing
+ */
+interface SeedingStateProps {
+  progress: number;
+  message: string;
+  stage: string;
+  onComplete: () => void;
+}
+
+function SeedingState({ progress, message, stage, onComplete }: SeedingStateProps) {
+  return (
+    <div className="flex flex-col items-center justify-center h-64 text-center space-y-6">
+      {/* Logo/Icon */}
+      <div className="relative">
+        <ShoppingBag className="h-16 w-16 text-primary animate-pulse" />
+        {stage === 'syncing' && (
+          <div className="absolute -top-1 -right-1">
+            <Loader2 className="h-6 w-6 text-primary animate-spin" />
+          </div>
+        )}
+      </div>
+
+      {/* Title */}
+      <div className="space-y-2">
+        <h3 className="text-lg font-semibold text-gray-900">
+          Cart Drawer Seeding in Progress
+        </h3>
+        <p className="text-sm text-gray-600 max-w-xs">
+          Setting up your personalized shopping experience...
+        </p>
+      </div>
+
+      {/* Progress Bar */}
+      <div className="w-full max-w-xs space-y-3">
+        <Progress value={progress} className="h-2" />
+        <div className="flex justify-between text-xs text-gray-500">
+          <span>{progress}%</span>
+          <span>{stage}</span>
+        </div>
+      </div>
+
+      {/* Current Message */}
+      <p className="text-sm font-medium text-primary">
+        {message}
+      </p>
+
+      {/* Skip Button for Testing */}
+      {progress < 100 && (
+        <Button 
+          variant="ghost" 
+          size="sm" 
+          onClick={onComplete}
+          className="text-xs text-gray-400 hover:text-gray-600"
+        >
+          Skip Animation
+        </Button>
+      )}
+
+      {/* Completion State */}
+      {progress === 100 && (
+        <div className="space-y-2">
+          <div className="text-green-600 text-sm font-medium">
+            ✅ Ready to shop!
+          </div>
+          <Button 
+            size="sm" 
+            onClick={onComplete}
+            className="text-xs"
+          >
+            Continue
+          </Button>
+        </div>
+      )}
     </div>
   );
 } 
