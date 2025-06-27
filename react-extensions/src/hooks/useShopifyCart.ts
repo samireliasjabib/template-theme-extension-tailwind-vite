@@ -17,7 +17,7 @@ interface UseShopifyCartReturn {
   refreshCart: () => Promise<void>;
   
   // States
-  isAdding: boolean;
+  isItemAdding: (variantId: string | number) => boolean;
   lastAddedItem: string | null;
 }
 
@@ -29,7 +29,7 @@ export const useShopifyCart = (): UseShopifyCartReturn => {
   const [cart, setCart] = useState<Cart | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [isAdding, setIsAdding] = useState(false);
+  const [addingItems, setAddingItems] = useState<Set<string>>(new Set());
   const [lastAddedItem, setLastAddedItem] = useState<string | null>(null);
 
   const shop = window.location.hostname;
@@ -128,13 +128,32 @@ export const useShopifyCart = (): UseShopifyCartReturn => {
     quantity: number = 1,
     properties?: Record<string, any>
   ): Promise<boolean> => {
+    const variantKey = variantId.toString();
+    
     try {
-      setIsAdding(true);
+      console.log('🛒 addToCart called with:', { variantId, quantity, properties });
+      
+      // Check if this variant is already being added
+      if (addingItems.has(variantKey)) {
+        console.log('⚠️ Variant already being added, skipping duplicate request');
+        return false;
+      }
+      
+      // Add small delay to prevent rate limiting on multiple simultaneous clicks
+      await new Promise(resolve => setTimeout(resolve, Math.random() * 500));
+      
+      setAddingItems(prev => new Set(prev).add(variantKey));
       setError(null);
       setLastAddedItem(null);
 
       // Check if this is a test product (fake ID)
       const isTestProduct = variantId.toString().length > 15 || variantId.toString().startsWith('12345');
+      
+      console.log('🔍 Product type check:', { 
+        variantId: variantId.toString(), 
+        isTestProduct, 
+        idLength: variantId.toString().length 
+      });
       
       if (isTestProduct) {
         console.log('🧪 Test mode: Simulating add to cart for demo product');
@@ -154,7 +173,9 @@ export const useShopifyCart = (): UseShopifyCartReturn => {
         return true;
       }
 
+      console.log('🚀 Calling SmartCartManager.addToCart with real product...');
       const result = await SmartCartManager.addToCart(variantId, quantity, properties);
+      console.log('📦 SmartCartManager.addToCart result:', result);
       
       if (result.success) {
         if (result.cart) {
@@ -165,11 +186,16 @@ export const useShopifyCart = (): UseShopifyCartReturn => {
         }
         setLastAddedItem(variantId.toString());
         
-        // Dispatch cart added event for auto-opening drawer
-        document.dispatchEvent(new CustomEvent('cart:added', {
-          bubbles: true,
-          detail: { variantId, quantity, source: 'react-extension' }
-        }));
+        // Try to trigger cart update events to ensure cart drawer opens
+        // We'll use a timeout to avoid immediate double-opening
+        setTimeout(() => {
+          document.dispatchEvent(new CustomEvent('cart:updated', {
+            bubbles: true,
+            detail: { variantId, quantity, source: 'react-extension' }
+          }));
+        }, 100);
+        
+        console.log('✅ Product added to cart successfully');
         
         // Clear the last added item after 3 seconds
         setTimeout(() => setLastAddedItem(null), 3000);
@@ -185,7 +211,11 @@ export const useShopifyCart = (): UseShopifyCartReturn => {
       console.error('Error adding to cart:', err);
       return false;
     } finally {
-      setIsAdding(false);
+      setAddingItems(prev => {
+        const newSet = new Set(prev);
+        newSet.delete(variantKey);
+        return newSet;
+      });
     }
   }, [refreshCart]);
 
@@ -279,6 +309,11 @@ export const useShopifyCart = (): UseShopifyCartReturn => {
     };
   }, [refreshCart]);
 
+  // Helper function to check if a specific variant is being added
+  const isItemAdding = (variantId: string | number): boolean => {
+    return addingItems.has(variantId.toString());
+  };
+
   return {
     cart,
     loading,
@@ -291,7 +326,7 @@ export const useShopifyCart = (): UseShopifyCartReturn => {
     clearCart,
     openCart,
     refreshCart,
-    isAdding,
+    isItemAdding,
     lastAddedItem,
   };
 }; 

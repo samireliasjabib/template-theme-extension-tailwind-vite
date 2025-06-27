@@ -55,6 +55,8 @@ export class ShopifyCartAPI {
    */
   static async addToCart(data: AddToCartData): Promise<Cart> {
     try {
+      console.log('🔧 Modern Cart API called with:', data);
+      
       const response = await fetch(`${this.baseUrl}/cart/add.js`, {
         method: 'POST',
         headers: {
@@ -64,15 +66,27 @@ export class ShopifyCartAPI {
         body: JSON.stringify(data),
       });
 
+      console.log('📥 Modern Cart API response:', response.status, response.statusText);
+
       if (!response.ok) {
-        const errorData = await response.json();
+        const errorText = await response.text();
+        console.error('❌ Modern Cart API error body:', errorText);
+        let errorData;
+        try {
+          errorData = JSON.parse(errorText);
+        } catch {
+          errorData = { message: errorText };
+        }
         throw new Error(errorData.message || 'Failed to add to cart');
       }
 
       // Get updated cart after adding
-      return await this.getCart();
+      console.log('🔄 Getting cart after Modern API add...');
+      const cart = await this.getCart();
+      console.log('📦 Modern Cart API success:', cart);
+      return cart;
     } catch (error) {
-      console.error('Error adding to cart:', error);
+      console.error('❌ Modern Cart API failed completely:', error);
       throw error;
     }
   }
@@ -271,29 +285,44 @@ export class ThemeIntegration {
  */
 export class LegacyCartIntegration {
   /**
-   * Add to cart using traditional form submission (fallback)
+   * Add to cart using AJAX (no redirect) - FIXED for password-protected stores
    */
-  static addToCartForm(variantId: string | number, quantity: number = 1): void {
-    const form = document.createElement('form');
-    form.method = 'POST';
-    form.action = '/cart/add';
-    form.style.display = 'none';
+  static async addToCartAjax(variantId: string | number, quantity: number = 1): Promise<Cart> {
+    console.log('🔧 AJAX addToCart called with:', { variantId, quantity });
+    
+    const requestBody = {
+      id: variantId,
+      quantity: quantity
+    };
+    
+    console.log('📤 AJAX request body:', requestBody);
+    
+    const response = await fetch('/cart/add.js', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'X-Requested-With': 'XMLHttpRequest',
+      },
+      body: JSON.stringify(requestBody),
+    });
 
-    const variantInput = document.createElement('input');
-    variantInput.type = 'hidden';
-    variantInput.name = 'id';
-    variantInput.value = variantId.toString();
+    console.log('📥 AJAX response status:', response.status, response.statusText);
 
-    const quantityInput = document.createElement('input');
-    quantityInput.type = 'hidden';
-    quantityInput.name = 'quantity';
-    quantityInput.value = quantity.toString();
+    if (!response.ok) {
+      const errorText = await response.text();
+      console.error('❌ AJAX response error body:', errorText);
+      throw new Error(`Failed to add to cart: ${response.status} ${response.statusText} - ${errorText}`);
+    }
 
-    form.appendChild(variantInput);
-    form.appendChild(quantityInput);
-    document.body.appendChild(form);
-
-    form.submit();
+    const result = await response.json();
+    console.log('✅ AJAX cart add successful:', result);
+    
+    // Get updated cart
+    console.log('🔄 Getting updated cart...');
+    const updatedCart = await ShopifyCartAPI.getCart();
+    console.log('📦 Updated cart:', updatedCart);
+    
+    return updatedCart;
   }
 
   /**
@@ -323,30 +352,44 @@ export class SmartCartManager {
     quantity: number = 1,
     properties?: Record<string, any>
   ): Promise<{ success: boolean; cart?: Cart; error?: string }> {
+    console.log('🎯 SmartCartManager.addToCart starting with:', { variantId, quantity, properties });
+    
     try {
       // Method 1: Try modern Cart API
+      console.log('📞 Trying Method 1: Modern Cart API...');
       const cart = await ShopifyCartAPI.addToCart({
         items: [{ id: variantId, quantity, properties }]
       });
 
+      console.log('✅ Method 1 SUCCESS - Modern Cart API worked!');
       // Update theme UI
       ThemeIntegration.updateCartCount(cart.item_count);
       ThemeIntegration.refreshCartSections();
 
       return { success: true, cart };
     } catch (apiError) {
-      console.warn('Cart API failed, trying fallback methods:', apiError);
+      console.error('❌ Method 1 FAILED - Cart API error:', apiError);
 
       try {
         // Method 2: Try window.Shopify
+        console.log('📞 Trying Method 2: window.Shopify...');
         if (LegacyCartIntegration.addToCartShopifyObject(variantId, quantity)) {
+          console.log('✅ Method 2 SUCCESS - window.Shopify worked!');
           return { success: true };
         }
+        console.log('⚠️ Method 2 SKIPPED - window.Shopify not available');
 
-        // Method 3: Form submission fallback
-        LegacyCartIntegration.addToCartForm(variantId, quantity);
-        return { success: true };
+        // Method 3: AJAX fallback (no redirect)
+        console.log('📞 Trying Method 3: AJAX fallback...');
+        const cart = await LegacyCartIntegration.addToCartAjax(variantId, quantity);
+        
+        console.log('✅ Method 3 SUCCESS - AJAX fallback worked!');
+        // Update theme UI
+        ThemeIntegration.updateCartCount(cart.item_count);
+        
+        return { success: true, cart };
       } catch (fallbackError) {
+        console.error('❌ Method 3 FAILED - AJAX fallback error:', fallbackError);
         console.error('All cart methods failed:', fallbackError);
         return { 
           success: false, 
