@@ -404,11 +404,17 @@ export class SmartCartDetector {
    */
   static overrideCartElements(onCartOpen: (e: Event) => void): void {
     if (this.isActive) {
-      console.log('⚠️ Smart detector ya está activo');
+      console.log('⚠️ Smart detector ya está activo, saltando inicialización');
       return;
     }
 
     const cartElements = this.detectAllCartElements();
+    
+    if (cartElements.length === 0) {
+      console.log('⚠️ No se encontraron elementos de carrito para interceptar');
+      return;
+    }
+    
     this.isActive = true;
     this.overriddenElements = [];
 
@@ -417,20 +423,46 @@ export class SmartCartDetector {
       const originalOnClick = element.onclick;
       const originalHref = element.getAttribute('href');
       
-      // Aplicar nuevo comportamiento
+      // Aplicar nuevo comportamiento con captura en fase de captura
       const newClickHandler = (e: Event) => {
+        console.log('🔥 SmartCartDetector click intercepted!', {
+          element: element,
+          tagName: element.tagName,
+          className: element.className,
+          id: element.id,
+          href: element.getAttribute('href'),
+          event: e
+        });
+        
         e.preventDefault();
-        e.stopPropagation();
-        onCartOpen(e);
-        console.log('🔄 Cart abierto via elemento:', element);
+        e.stopImmediatePropagation(); // Más agresivo que stopPropagation
+        
+        try {
+          console.log('🔥 About to call onCartOpen from SmartCartDetector...');
+          onCartOpen(e);
+          console.log('🔥 onCartOpen called successfully from SmartCartDetector!');
+        } catch (error) {
+          console.error('🔥 Error calling onCartOpen:', error);
+        }
       };
 
-      element.addEventListener('click', newClickHandler);
+      // Usar capture: true para interceptar antes que otros handlers
+      element.addEventListener('click', newClickHandler, { capture: true });
       
-      // Para links, remover href temporalmente
+      // Para links, NO remover href, solo interceptar
       if (element.tagName.toLowerCase() === 'a' && originalHref) {
         element.setAttribute('data-smart-original-href', originalHref);
-        element.removeAttribute('href');
+        // NO removemos el href para evitar que se vea disabled
+      }
+      
+      // Para formularios, interceptar submit también
+      if (element.tagName.toLowerCase() === 'form') {
+        const submitHandler = (e: Event) => {
+          e.preventDefault();
+          e.stopImmediatePropagation();
+          onCartOpen(e);
+        };
+        element.addEventListener('submit', submitHandler, { capture: true });
       }
 
       this.overriddenElements.push(element);
@@ -446,16 +478,16 @@ export class SmartCartDetector {
     if (!this.isActive) return;
 
     this.overriddenElements.forEach(element => {
-      // Restaurar href original
-      const originalHref = element.getAttribute('data-smart-original-href');
-      if (originalHref) {
-        element.setAttribute('href', originalHref);
+      // Limpiar data attributes
+      if (element.hasAttribute('data-smart-original-href')) {
         element.removeAttribute('data-smart-original-href');
       }
       
-      // Clonar elemento para remover todos los listeners
+      // Clonar elemento para remover todos los listeners de manera limpia
       const newElement = element.cloneNode(true) as HTMLElement;
-      element.parentNode?.replaceChild(newElement, element);
+      if (element.parentNode) {
+        element.parentNode.replaceChild(newElement, element);
+      }
     });
 
     this.isActive = false;
@@ -471,10 +503,12 @@ export class SmartCartDetector {
   static temporaryDisable(duration: number = 1000): void {
     if (!this.isActive) return;
     
-    this.cleanup();
+    // Just mark as inactive, don't cleanup completely
+    this.isActive = false;
     console.log(`⏸️ Smart detector desactivado por ${duration}ms`);
     
     setTimeout(() => {
+      this.isActive = true;
       console.log('🔄 Smart detector reactivado');
     }, duration);
   }

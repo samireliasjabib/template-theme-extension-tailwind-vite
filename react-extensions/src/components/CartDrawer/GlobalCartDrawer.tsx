@@ -19,16 +19,31 @@ export function GlobalCartDrawer() {
   };
 
   useEffect(() => {
-    // Handle cart open events with temporary disable to prevent loops
+    // Handle cart open events with enhanced debugging
     const handleCartOpen = (e: Event) => {
+      console.log('🔥 handleCartOpen triggered!', {
+        eventType: e.type,
+        target: e.target,
+        currentTarget: e.currentTarget,
+        timestamp: Date.now()
+      });
+      
       e.preventDefault();
       e.stopPropagation();
       
-      // Temporarily disable detection to prevent conflicts
-      SmartCartDetector.temporaryDisable(800);
-      
-      openDrawer();
-      console.log('🛒 Smart cart drawer opened via:', e.type);
+      try {
+        console.log('🔥 About to call openDrawer...');
+        openDrawer();
+        console.log('🔥 openDrawer called successfully!');
+        
+        // Temporarily disable detection AFTER opening to prevent conflicts
+        setTimeout(() => {
+          SmartCartDetector.temporaryDisable(500);
+        }, 100);
+        
+      } catch (error) {
+        console.error('🔥 Error in handleCartOpen:', error);
+      }
     };
 
     // Listen for global cart events
@@ -95,15 +110,20 @@ export function GlobalCartDrawer() {
       });
     };
 
-    // Initialize detection with delay to ensure DOM is ready
-    const initializationTimer = setTimeout(() => {
+    // Initialize detection with small delay to ensure DOM is ready
+    const initTimer = setTimeout(() => {
       initializeSmartDetection();
-    }, 200);
+    }, 100);
 
     // Global window methods for programmatic access
     (window as any).openCartDrawer = () => {
-      console.log('🛒 Cart drawer opened programmatically');
-      openDrawer();
+      console.log('🔥 Cart drawer opened programmatically - testing hook...');
+      try {
+        openDrawer();
+        console.log('🔥 Programmatic openDrawer successful!');
+      } catch (error) {
+        console.error('🔥 Error in programmatic openDrawer:', error);
+      }
     };
     (window as any).closeCartDrawer = () => {
       console.log('🛒 Cart drawer closed programmatically');
@@ -121,17 +141,26 @@ export function GlobalCartDrawer() {
 
     document.addEventListener('cart:added', handleAddToCart);
 
+    // DISABLED: MutationObserver was causing infinite loops
+    // We'll rely on the second pass detection instead
+    const observer = {
+      disconnect: () => {} // Dummy object for cleanup
+    };
+
     console.log('🛒 Smart Global Cart Drawer initialized successfully');
 
     // Cleanup function
     return () => {
-      clearTimeout(initializationTimer);
+      clearTimeout(initTimer);
       
       // Remove event listeners
       cartEvents.forEach(eventName => {
         document.removeEventListener(eventName, handleCartOpen);
       });
       document.removeEventListener('cart:added', handleAddToCart);
+      
+      // Disconnect observer
+      observer.disconnect();
       
       // Cleanup Smart Cart Detector
       SmartCartDetector.cleanup();
