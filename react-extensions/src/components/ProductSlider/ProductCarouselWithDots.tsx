@@ -13,23 +13,17 @@ import type { ShopifyProduct } from '../../types/shopify.types';
 
 interface ProductCarouselWithDotsProps {
   products: ShopifyProduct[];
-  onAddToCart: (variantId: number, quantity: number) => Promise<boolean>;
-  isAdding: boolean;
-  lastAddedItem: string | null;
   themeColor?: string;
   autoPlay?: boolean;
   autoPlayInterval?: number;
 }
 
 /**
- * Product Carousel with Dot Navigation
+ * Independent Product Carousel with Dot Navigation
  * Features: dot indicators, auto-play, smooth transitions
  */
 export function ProductCarouselWithDots({
   products,
-  onAddToCart,
-  isAdding,
-  lastAddedItem,
   themeColor = '#007bff',
   autoPlay = false,
   autoPlayInterval = 3000,
@@ -99,9 +93,6 @@ export function ProductCarouselWithDots({
             >
               <ProductCard
                 product={product}
-                onAddToCart={onAddToCart}
-                isAdding={isAdding}
-                lastAddedItem={lastAddedItem}
                 themeColor={themeColor}
                 showQuickActions={true}
                 compact={false}

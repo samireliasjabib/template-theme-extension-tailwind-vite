@@ -14,7 +14,8 @@ import {
   Zap,
   CheckCircle
 } from 'lucide-react';
-import type { ProductCardProps, ShopifyVariant } from '../../types/shopify.types';
+import type { ShopifyProduct, ShopifyVariant } from '../../types/shopify.types';
+import { useShopifyCart } from '../../hooks/useShopifyCart';
 import { 
   formatMoney, 
   getProductImage, 
@@ -26,15 +27,19 @@ import {
   hasMultipleVariants
 } from '../../helpers/product.helpers';
 
+interface ProductCardProps {
+  product: ShopifyProduct;
+  themeColor?: string;
+  showQuickActions?: boolean;
+  compact?: boolean;
+}
+
 /**
- * Enhanced Product Card Component with Beautiful Design
- * Features: animations, wishlist, quick view, quantity controls, improved styling
+ * Independent Product Card Component
+ * Each card manages its own cart loading state and API calls
  */
 export const ProductCard: React.FC<ProductCardProps> = ({
   product,
-  onAddToCart,
-  isAdding,
-  lastAddedItem,
   themeColor = '#007bff',
   showQuickActions = true,
   compact = false,
@@ -46,6 +51,9 @@ export const ProductCard: React.FC<ProductCardProps> = ({
   const [isLiked, setIsLiked] = useState<boolean>(false);
   const [isHovered, setIsHovered] = useState<boolean>(false);
 
+  // Each card has its own cart management
+  const { addToCart, isItemAdding, lastAddedItem } = useShopifyCart();
+
   const selectedVariant: ShopifyVariant | undefined = product.variants.find(
     v => v.id === selectedVariantId
   ) || product.variants[0];
@@ -56,9 +64,14 @@ export const ProductCard: React.FC<ProductCardProps> = ({
     selectedVariant?.compare_at_price || undefined
   );
 
+  // Check if this specific variant is being added to cart
+  const isThisVariantAdding = selectedVariant ? isItemAdding(selectedVariant.id) : false;
+  const isJustAdded = selectedVariant ? lastAddedItem === selectedVariant.id.toString() : false;
+
   const handleAddToCart = async (): Promise<void> => {
     if (selectedVariant?.available) {
-      await onAddToCart(selectedVariant.id, quantity);
+      console.log(`🛒 ProductCard: Adding variant ${selectedVariant.id} to cart`);
+      await addToCart(selectedVariant.id, quantity);
     }
   };
 
@@ -69,8 +82,6 @@ export const ProductCard: React.FC<ProductCardProps> = ({
   const handleQuantityChange = (delta: number): void => {
     setQuantity(prev => Math.max(1, prev + delta));
   };
-
-  const isJustAdded: boolean = lastAddedItem === selectedVariant?.id?.toString();
 
   if (!selectedVariant) {
     return null;
@@ -157,10 +168,10 @@ export const ProductCard: React.FC<ProductCardProps> = ({
           )}>
             <Button
               onClick={handleAddToCart}
-              disabled={isAdding}
+              disabled={isThisVariantAdding}
               className="w-full bg-primary hover:bg-primary/90 text-white font-semibold shadow-lg border-0 h-11"
             >
-              {isAdding ? (
+              {isThisVariantAdding ? (
                 <div className="flex items-center gap-2">
                   <div className="animate-spin rounded-full h-4 w-4 border-2 border-white border-t-transparent" />
                   Adding...
@@ -307,10 +318,10 @@ export const ProductCard: React.FC<ProductCardProps> = ({
           {/* Add to Cart Button */}
           <Button
             onClick={handleAddToCart}
-            disabled={!selectedVariant.available || isAdding}
+            disabled={!selectedVariant.available || isThisVariantAdding}
             className="w-full h-12 bg-primary hover:bg-primary/90 text-white font-semibold rounded-xl shadow-lg hover:shadow-xl transition-all duration-300 border-0"
           >
-            {isAdding ? (
+            {isThisVariantAdding ? (
               <div className="flex items-center gap-2">
                 <div className="animate-spin rounded-full h-4 w-4 border-2 border-white border-t-transparent" />
                 Adding to Cart...

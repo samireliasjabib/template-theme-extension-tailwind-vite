@@ -19,9 +19,7 @@ export function useProductManager(productCount: number = 12) {
     totalPrice, 
     cart, 
     error: cartError, 
-    addToCart, 
-    isItemAdding, 
-    lastAddedItem 
+    addToCart
   } = useShopifyCart();
 
   // Fetch products with enhanced error handling
@@ -136,8 +134,6 @@ export function useProductManager(productCount: number = 12) {
     itemCount,
     totalPrice,
     cartError,
-    isAdding,
-    lastAddedItem,
     
     // Actions
     handleAddToCart,

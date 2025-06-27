@@ -48,8 +48,6 @@ export function ProductSlider({
     itemCount,
     totalPrice,
     cartError,
-    isAdding,
-    lastAddedItem,
     handleAddToCart,
     hasProducts,
     hasValidationIssues,
@@ -252,9 +250,6 @@ export function ProductSlider({
           {viewMode === 'grid' && (
             <ProductGrid
               products={filteredProducts.length > 0 ? filteredProducts : products.slice(0, 12)}
-              onAddToCart={handleAddToCart}
-              isAdding={isAdding}
-              lastAddedItem={lastAddedItem}
               themeColor={themeColor}
               columns={4}
               gap="md"
@@ -265,9 +260,6 @@ export function ProductSlider({
           {viewMode === 'carousel' && (
             <ProductCarousel
               products={filteredProducts.length > 0 ? filteredProducts : products.slice(0, 12)}
-              onAddToCart={handleAddToCart}
-              isAdding={isAdding}
-              lastAddedItem={lastAddedItem}
               themeColor={themeColor}
             />
           )}
@@ -275,9 +267,6 @@ export function ProductSlider({
           {viewMode === 'carousel-dots' && (
             <ProductCarouselWithDots
               products={filteredProducts.length > 0 ? filteredProducts : products.slice(0, 12)}
-              onAddToCart={handleAddToCart}
-              isAdding={isAdding}
-              lastAddedItem={lastAddedItem}
               themeColor={themeColor}
               autoPlay={autoPlay}
               autoPlayInterval={3000}
@@ -287,12 +276,9 @@ export function ProductSlider({
           {viewMode === 'carousel-vertical' && (
             <ProductCarouselVertical
               products={filteredProducts.length > 0 ? filteredProducts : products.slice(0, 12)}
-              onAddToCart={handleAddToCart}
-              isAdding={isAdding}
-              lastAddedItem={lastAddedItem}
               themeColor={themeColor}
               height={600}
-              itemsVisible={2}
+              itemsPerRow={2}
             />
           )}
         </div>

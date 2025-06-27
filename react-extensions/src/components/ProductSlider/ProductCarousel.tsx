@@ -12,21 +12,15 @@ import type { ShopifyProduct } from '../../types/shopify.types';
 
 interface ProductCarouselProps {
   products: ShopifyProduct[];
-  onAddToCart: (variantId: number, quantity: number) => Promise<boolean>;
-  isAdding: boolean;
-  lastAddedItem: string | null;
   themeColor?: string;
 }
 
 /**
- * Standard Product Carousel Component
+ * Independent Product Carousel Component
  * Features: horizontal scrolling, arrow navigation, responsive breakpoints
  */
 export function ProductCarousel({
   products,
-  onAddToCart,
-  isAdding,
-  lastAddedItem,
   themeColor = '#007bff',
 }: ProductCarouselProps) {
 
@@ -69,9 +63,6 @@ export function ProductCarousel({
             >
               <ProductCard
                 product={product}
-                onAddToCart={onAddToCart}
-                isAdding={isAdding}
-                lastAddedItem={lastAddedItem}
                 themeColor={themeColor}
                 showQuickActions={true}
                 compact={false}

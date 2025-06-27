@@ -7,9 +7,6 @@ import type { ShopifyProduct } from '../../types/shopify.types';
 
 interface ProductGridProps {
   products: ShopifyProduct[];
-  onAddToCart: (variantId: number, quantity: number) => Promise<boolean>;
-  isAdding: boolean;
-  lastAddedItem: string | null;
   themeColor?: string;
   columns?: 2 | 3 | 4 | 5 | 6;
   gap?: 'sm' | 'md' | 'lg';
@@ -17,14 +14,11 @@ interface ProductGridProps {
 }
 
 /**
- * Product Grid Component
+ * Independent Product Grid Component
  * Features: responsive grid layout, configurable columns, gap control
  */
 export function ProductGrid({
   products,
-  onAddToCart,
-  isAdding,
-  lastAddedItem,
   themeColor = '#007bff',
   columns = 4,
   gap = 'md',
@@ -91,9 +85,6 @@ export function ProductGrid({
           <div key={product.id} className="h-full">
             <ProductCard
               product={product}
-              onAddToCart={onAddToCart}
-              isAdding={isAdding}
-              lastAddedItem={lastAddedItem}
               themeColor={themeColor}
               showQuickActions={true}
               compact={compact}
