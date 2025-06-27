@@ -28,7 +28,7 @@ export function ProductCarouselVertical({
   products,
   themeColor = '#007bff',
   height = 500,
-  itemsPerRow = 2,
+  itemsPerRow = 1,
 }: ProductCarouselVerticalProps) {
   const [api, setApi] = useState<CarouselApi>();
   const [current, setCurrent] = useState(0);
@@ -172,6 +172,7 @@ export function ProductCarouselVertical({
                             themeColor={themeColor}
                             showQuickActions={true}
                             compact={true}
+                            layout="row"
                           />
                         </div>
                       </div>

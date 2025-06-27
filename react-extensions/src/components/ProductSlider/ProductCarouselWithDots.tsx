@@ -85,7 +85,7 @@ export function ProductCarouselWithDots({
         }}
         className="w-full"
       >
-        <CarouselContent className="-ml-4">
+        <CarouselContent className="-ml-4 py-4">
           {products.map((product) => (
             <CarouselItem 
               key={product.id} 
