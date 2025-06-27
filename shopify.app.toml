@@ -3,7 +3,7 @@
 client_id = "9db355888f27c083071def35f3a1c226"
 name = "testing-react-extension"
 handle = "testing-react-extension"
-application_url = "https://turbo-canadian-advocacy-impressive.trycloudflare.com"
+application_url = "https://fonts-babies-nsw-trained.trycloudflare.com"
 embedded = true
 
 [build]
@@ -23,14 +23,19 @@ api_version = "2025-04"
 
 [access_scopes]
 # Learn more at https://shopify.dev/docs/apps/tools/cli/configuration#access_scopes
-scopes = "write_products"
+scopes = "write_products,read_products"
 
 [auth]
 redirect_urls = [
-  "https://turbo-canadian-advocacy-impressive.trycloudflare.com/auth/callback",
-  "https://turbo-canadian-advocacy-impressive.trycloudflare.com/auth/shopify/callback",
-  "https://turbo-canadian-advocacy-impressive.trycloudflare.com/api/auth/callback"
+  "https://fonts-babies-nsw-trained.trycloudflare.com/auth/callback",
+  "https://fonts-babies-nsw-trained.trycloudflare.com/auth/shopify/callback",
+  "https://fonts-babies-nsw-trained.trycloudflare.com/api/auth/callback"
 ]
+
+[app_proxy]
+url = "https://fonts-babies-nsw-trained.trycloudflare.com/api/proxy"
+subpath = "recommendations"
+prefix = "apps"
 
 [pos]
 embedded = false

@@ -32,6 +32,73 @@ export const useShopifyCart = (): UseShopifyCartReturn => {
   const [isAdding, setIsAdding] = useState(false);
   const [lastAddedItem, setLastAddedItem] = useState<string | null>(null);
 
+  const shop = window.location.hostname;
+
+  console.log(shop ,'testing');
+
+
+  const [dataProxy, setDataProxy] = useState<any>(null);
+
+  console.log('🔍 Current dataProxy state:', dataProxy);
+
+
+  useEffect(() => {
+    console.log('🔍 Sending POST to proxy for shop:', shop);
+    console.log('🌍 Current window location:', window.location);
+    
+    if (!shop) {
+      console.log('⚠️ No shop available, skipping request');
+      return;
+    }
+    
+    // Real API call to get products from Shopify Admin API
+    console.log('🚀 Fetching real products from Shopify Admin API...');
+    
+    fetch(`/apps/recommendations?shop=${shop}`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        action: 'get_recommendations',
+        shop: shop,
+        timestamp: new Date().toISOString()
+      }),
+    })
+    .then(res => {
+      console.log('📡 POST Response status:', res.status);
+      console.log('📡 POST Response headers:', Object.fromEntries(res.headers));
+      
+      if (!res.ok) {
+        throw new Error(`HTTP error! status: ${res.status}`);
+      }
+      return res.json();
+    })
+    .then(data => {
+      console.log('✅ POST Proxy data received:', data);
+      setDataProxy(data);
+    })
+    .catch(err => {
+      console.error('❌ POST Error:', err);
+      console.log('🔄 Falling back to mock data due to error...');
+      
+      // Fallback to mock data if proxy fails
+      setDataProxy({
+        success: false,
+        error: err.message,
+        shop: shop,
+        fallback: true,
+        data: {
+          recommendations: [
+            { id: 1, title: "Fallback Product 1", price: "$19.99" },
+            { id: 2, title: "Fallback Product 2", price: "$29.99" }
+          ]
+        },
+        timestamp: new Date().toISOString()
+      });
+    });
+  }, [shop]);
+
   // Computed values
   const itemCount = cart?.item_count || 0;
   const totalPrice = cart?.total_price || 0;

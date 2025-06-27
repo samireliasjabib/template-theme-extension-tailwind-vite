@@ -1,67 +1,75 @@
 import React, { useState, useEffect } from 'react';
-import ModernProductCard from './ModernProductCard';
-import { ModernProductList } from './ModernProductList';
-import ProductCarousel from './ProductCarousel';
-import FeaturedProductsCarousel from './FeaturedProductsCarousel';
-import DotsProductSlider from './DotsProductSlider';
-import TitleArrowsSlider from './TitleArrowsSlider';
-import SideArrowsSlider from './SideArrowsSlider';
-import CenteredTitleSlider from './CenteredTitleSlider';
-import VerticalProductSlider from './VerticalProductSlider';
 import { useShopifyCart } from '../hooks/useShopifyCart';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from './ui/card';
 import { Button } from './ui/button';
 import { Badge } from './ui/badge';
 import { Alert, AlertDescription, AlertTitle } from './ui/alert';
+import {
+  Carousel,
+  CarouselContent,
+  CarouselItem,
+  CarouselNext,
+  CarouselPrevious,
+} from './ui/carousel';
 import { cn } from '../lib/utils';
-import { Sparkles, ShoppingCart, Store, Info, TrendingUp, Heart, Star } from 'lucide-react';
+import { ShoppingCart, Store, Info, Star, Heart, Eye, ChevronDown } from 'lucide-react';
 
-interface ShopifyProduct {
+// Real Shopify Product Interface based on proxy data
+interface ShopifyRealProduct {
   id: number;
   title: string;
   handle: string;
-  description: string;
-  price: number;
-  price_min: number;
-  price_max: number;
-  available: boolean;
-  images: string[];
-  featured_image: string;
+  body_html: string;
+  published_at: string;
+  created_at: string;
+  updated_at: string;
+  vendor: string;
+  product_type: string;
+  tags: string[];
   variants: Array<{
     id: number;
     title: string;
-    price: number;
-    available: boolean;
-    sku: string;
     option1?: string;
     option2?: string;
     option3?: string;
+    sku: string;
+    requires_shipping: boolean;
+    taxable: boolean;
+    featured_image?: {
+      id: number;
+      product_id: number;
+      position: number;
+      alt: string;
+      width: number;
+      height: number;
+      src: string;
+      variant_ids: number[];
+    };
+    available: boolean;
+    price: string;
+    grams: number;
+    compare_at_price?: string;
+    position: number;
+    product_id: number;
   }>;
-  options: Array<{
-    name: string;
-    values: string[];
+  images?: Array<{
+    id: number;
+    product_id: number;
+    position: number;
+    alt: string;
+    width: number;
+    height: number;
+    src: string;
   }>;
-  tags: string[];
-  type: string;
-  vendor: string;
-}
-
-interface ShopifyCart {
-  token: string;
-  note: string;
-  attributes: Record<string, any>;
-  total_price: number;
-  total_weight: number;
-  item_count: number;
-  items: any[];
-  requires_shipping: boolean;
-  currency: string;
-}
-
-interface ShopData {
-  currency: string;
-  money_format: string;
-  domain: string;
+  featured_image?: {
+    id: number;
+    product_id: number;
+    position: number;
+    alt: string;
+    width: number;
+    height: number;
+    src: string;
+  };
 }
 
 interface TestingBlockProps {
@@ -70,12 +78,11 @@ interface TestingBlockProps {
   showDescription?: boolean;
   animationEnabled?: boolean;
   interactionType?: string;
-  productData?: string; // JSON string from Liquid
+  productData?: string;
 }
 
 /**
- * Main testing block component with real Shopify integration
- * Features: Real product data, cart integration, wishlist, and dynamic theming
+ * Simplified React Extension Widget - Real Products from Proxy with Variant Selection
  */
 const TestingBlock: React.FC<TestingBlockProps> = ({
   blockId,
@@ -86,18 +93,64 @@ const TestingBlock: React.FC<TestingBlockProps> = ({
   productData,
 }) => {
   const [isVisible, setIsVisible] = useState(false);
-  const [product, setProduct] = useState<ShopifyProduct | null>(null);
-  const [shopifyData, setShopifyData] = useState<{
-    cart: ShopifyCart | null;
-    shop: ShopData | null;
-    customer: any;
-  }>({ cart: null, shop: null, customer: null });
+  const [products, setProducts] = useState<ShopifyRealProduct[]>([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [selectedVariants, setSelectedVariants] = useState<{[productId: number]: number}>({});
 
   // Use cart integration
-  const { itemCount, totalPrice, cart, error: cartError, addToCart } = useShopifyCart();
+  const { itemCount, totalPrice, cart, error: cartError, addToCart, isAdding, lastAddedItem } = useShopifyCart();
 
-  // Simulate component mounting animation
+  // Fetch products directly from proxy
+  useEffect(() => {
+    const fetchProducts = async () => {
+      try {
+        setLoading(true);
+        setError(null);
+
+        const response = await fetch('/apps/recommendations', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            action: 'get_products',
+            limit: 8
+          }),
+        });
+
+        if (!response.ok) {
+          throw new Error(`HTTP error! status: ${response.status}`);
+        }
+
+        const data = await response.json();
+        
+        if (data.success && data.products) {
+          setProducts(data.products);
+          
+          // Set default selected variants (first variant of each product)
+          const defaultVariants: {[productId: number]: number} = {};
+          data.products.forEach((product: ShopifyRealProduct) => {
+            if (product.variants && product.variants.length > 0) {
+              defaultVariants[product.id] = product.variants[0].id;
+            }
+          });
+          setSelectedVariants(defaultVariants);
+        } else {
+          setError('No se pudieron cargar los productos');
+        }
+      } catch (err) {
+        console.error('Error fetching products:', err);
+        setError('Error al cargar productos del proxy');
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchProducts();
+  }, []);
+
+  // Animation on mount
   useEffect(() => {
     const timer = setTimeout(() => {
       setIsVisible(true);
@@ -105,585 +158,341 @@ const TestingBlock: React.FC<TestingBlockProps> = ({
     return () => clearTimeout(timer);
   }, []);
 
-  // Load Shopify data from the page
-  useEffect(() => {
-    try {
-      // Parse product data from Liquid
-      if (productData) {
-        const parsedProduct = JSON.parse(productData);
-        setProduct(parsedProduct);
-      }
-
-      // Load cart and shop data from script tag
-      if (blockId) {
-        const scriptElement = document.getElementById(`shopify-cart-data-${blockId}`);
-        if (scriptElement) {
-          const shopifyInfo = JSON.parse(scriptElement.textContent || '{}');
-          setShopifyData(shopifyInfo);
-        }
-      }
-    } catch (error) {
-      console.error('Error parsing Shopify data:', error);
-    } finally {
-      setLoading(false);
-    }
-  }, [productData, blockId]);
-
-
-  const formatMoney = (cents: number): string => {
-    if (shopifyData.shop?.money_format) {
-      // Use Shopify's money format
-      const amount = (cents / 100).toFixed(2);
-      return shopifyData.shop.money_format.replace('{{amount}}', amount);
-    }
-    return `$${(cents / 100).toFixed(2)}`;
+  const formatMoney = (price: string): string => {
+    const amount = parseFloat(price);
+    return `$${amount.toFixed(2)}`;
   };
 
-  // Convert Shopify product to our component format
-  const convertedProduct = product ? {
-    id: product.variants[0]?.id.toString() || product.id.toString(),
-    title: product.title,
-    price: formatMoney(product.price),
-    description: product.description,
-    image: product.featured_image || product.images[0] || 'https://via.placeholder.com/300x200',
-    variants: product.variants.map(variant => ({
-      id: variant.id.toString(),
-      title: variant.title,
-      price: formatMoney(variant.price),
-      available: variant.available,
-    })),
-  } : null;
-
-  // Fallback test product for testing cart functionality
-  const testProduct = {
-    id: '12345678901234567890', // Fake variant ID for testing
-    title: 'Test Product - React Extension',
-    price: '$29.99',
-    description: 'This is a test product to demonstrate the cart integration. In a real store, select a product from the theme editor.',
-    image: 'https://via.placeholder.com/300x200/007bff/ffffff?text=Test+Product',
-    variants: [
-      {
-        id: '12345678901234567890',
-        title: 'Default Variant',
-        price: '$29.99',
-        available: true,
-      },
-      {
-        id: '12345678901234567891', 
-        title: 'Premium Variant',
-        price: '$39.99',
-        available: true,
+  const getProductImage = (product: ShopifyRealProduct, variantId?: number): string => {
+    // Try to get variant-specific image first
+    if (variantId) {
+      const variant = product.variants.find(v => v.id === variantId);
+      if (variant?.featured_image?.src) {
+        return variant.featured_image.src;
       }
-    ],
+    }
+
+    // Fallback to product featured image
+    if (product.featured_image?.src) {
+      return product.featured_image.src;
+    }
+
+    // Fallback to first image
+    if (product.images && product.images.length > 0) {
+      return product.images[0].src;
+    }
+
+    return 'https://via.placeholder.com/300x300?text=No+Image';
   };
 
-  // Use real product if available, otherwise use test product ONLY if no product was selected
-  const displayProduct = convertedProduct || (productData ? null : testProduct);
+  const getSelectedVariant = (product: ShopifyRealProduct) => {
+    const selectedVariantId = selectedVariants[product.id];
+    return product.variants.find(v => v.id === selectedVariantId) || product.variants[0];
+  };
+
+  const handleVariantChange = (productId: number, variantId: number) => {
+    setSelectedVariants(prev => ({
+      ...prev,
+      [productId]: variantId
+    }));
+  };
 
   if (loading) {
     return (
-      <div className="testing-block loading">
-        <div className="loading-content">
-          <div className="spinner" style={{ borderTopColor: themeColor }}></div>
-          <p>Loading React component...</p>
-          {product && (
-            <>
-              <p><strong>{product.title}</strong></p>
-              <p>{formatMoney(product.price)}</p>
-            </>
-          )}
+      <div className="w-full max-w-6xl mx-auto p-6">
+        <div className="text-center mb-8">
+          <div className="h-8 bg-muted rounded w-64 mx-auto mb-4 animate-pulse" />
+          <div className="h-4 bg-muted rounded w-96 mx-auto animate-pulse" />
+        </div>
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+          {Array(4).fill(0).map((_, i) => (
+            <div key={i} className="h-96 bg-muted rounded-xl animate-pulse" />
+          ))}
         </div>
       </div>
     );
   }
 
-  // Debug: Always show the component structure
-  console.log('🎯 TestingBlock render:', {
-    blockId,
-    hasProductData: !!productData,
-    productDataLength: productData?.length || 0,
-    hasProduct: !!product,
-    hasConvertedProduct: !!convertedProduct,
-    hasDisplayProduct: !!displayProduct,
-    productInfo: product ? {
-      id: product.id,
-      title: product.title,
-      variants: product.variants?.length || 0,
-      price: product.price
-    } : null,
-    rawProductData: productData ? productData.substring(0, 100) + '...' : 'None',
-    shopifyData: {
-      hasCart: !!shopifyData.cart,
-      hasShop: !!shopifyData.shop
-    }
-  });
-
-  // Additional debugging for product data parsing
-  if (productData && !product) {
-    
-    console.error('❌ Product data exists but failed to parse:', {
-      productDataType: typeof productData,
-      productDataLength: productData.length,
-      firstChars: productData.substring(0, 50),
-      lastChars: productData.substring(productData.length - 50)
-    });
+  if (error) {
+    return (
+      <div className="w-full max-w-6xl mx-auto p-6">
+        <Alert variant="destructive">
+          <Info className="h-4 w-4" />
+          <AlertTitle>Error</AlertTitle>
+          <AlertDescription>{error}</AlertDescription>
+        </Alert>
+      </div>
+    );
   }
 
   return (
     <div 
       className={cn(
-        "w-full max-w-7xl mx-auto p-6 space-y-8",
+        "w-full max-w-6xl mx-auto p-6",
         isVisible && animationEnabled && "animate-in fade-in duration-500"
       )}
       style={{ 
         '--theme-color': themeColor,
       } as React.CSSProperties}
     >
-      {/* Hero Header */}
-      <Card className="text-center bg-gradient-to-r from-primary/5 to-purple-500/5 border-primary/20">
-        <CardHeader className="pb-8">
-          <div className="flex items-center justify-center gap-3 mb-4">
-            <Sparkles className="h-8 w-8 text-primary" />
-            <h1 className="text-4xl font-bold bg-gradient-to-r from-primary to-purple-600 bg-clip-text text-transparent">
-              Modern Shopify Extension
-            </h1>
-            <Sparkles className="h-8 w-8 text-primary" />
-          </div>
-          
-          {showDescription && (
-            <CardDescription className="text-lg max-w-2xl mx-auto">
-              A fully functional React component built with shadcn/ui, Tailwind CSS, and integrated with Shopify's cart system!
-            </CardDescription>
-          )}
-          
-          {/* Technology Badges */}
-          <div className="flex flex-wrap items-center justify-center gap-2 mt-6">
-            <Badge variant="secondary" className="gap-1">
-              <Sparkles className="h-3 w-3" />
-              shadcn/ui
-            </Badge>
-            <Badge variant="secondary" className="gap-1">
-              <TrendingUp className="h-3 w-3" />
-              Tailwind CSS
-            </Badge>
-            <Badge variant="secondary" className="gap-1">
-              <ShoppingCart className="h-3 w-3" />
-              Shopify Integration
-            </Badge>
-          </div>
-          
-          {/* Cart Status */}
-          {cart && (
-            <Alert className="mt-6 max-w-md mx-auto">
-              <ShoppingCart className="h-4 w-4" />
-              <AlertTitle>Cart Status</AlertTitle>
-              <AlertDescription>
-                {itemCount} items • {formatMoney(totalPrice)}
-                {shopifyData.shop?.currency && ` ${shopifyData.shop.currency}`}
-              </AlertDescription>
-            </Alert>
-          )}
-        </CardHeader>
-      </Card>
-
-      {/* Main Content */}
-      <div className="space-y-8">
-        
-        {/* Featured Product Demo */}
-        {displayProduct && (
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <Store className="h-5 w-5" />
-                Featured Product Demo
-                <Badge>Live Shopify Data</Badge>
-              </CardTitle>
-              <CardDescription>
-                This product is fetched directly from your Shopify store and demonstrates real cart integration
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <div className="max-w-sm mx-auto">
-                <ModernProductCard
-                  product={displayProduct}
-                  themeColor={themeColor}
-                  animationEnabled={animationEnabled}
-                  onAddToCart={async (variantId, quantity) => {
-                    await addToCart(variantId, quantity);
-                  }}
-                />
-              </div>
-              
-              {!convertedProduct && (
-                <Alert className="mt-4">
-                  <Info className="h-4 w-4" />
-                  <AlertTitle>Test Mode</AlertTitle>
-                  <AlertDescription>
-                    This is a demo product. Select a real product from the theme editor to see actual Shopify data.
-                  </AlertDescription>
-                </Alert>
-              )}
-            </CardContent>
-          </Card>
-        )}
-
-        {/* Featured Products Hero Carousel */}
-        <FeaturedProductsCarousel 
-          maxProducts={8}
-          showQuickActions={true}
-          compact={false}
-        />
-
-        {/* Different Slider Variants */}
-        <div className="space-y-12">
-          {/* 1. Dots Navigation Slider */}
-          <Card className="border-2 border-primary/10 bg-gradient-to-br from-white to-primary/5">
-            <CardHeader className="pb-6">
-              <CardTitle className="flex items-center gap-3 text-xl">
-                <div className="p-2 bg-primary/10 rounded-lg">
-                  <span className="text-xl">🎯</span>
-                </div>
-                Slider with Dots Navigation
-                <Badge variant="secondary" className="ml-auto">Dots</Badge>
-              </CardTitle>
-              <CardDescription className="text-base">
-                Clean slider with dot navigation at the bottom for precise control
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="pt-0">
-              <DotsProductSlider
-                title="Premium Collection"
-                description="Handpicked premium products with dot navigation"
-                maxProducts={6}
-                autoplay={true}
-              />
-            </CardContent>
-          </Card>
-
-          {/* 2. Title with Side Arrows */}
-          <Card className="border-2 border-orange-500/10 bg-gradient-to-br from-white to-orange-50">
-            <CardHeader className="pb-6">
-              <CardTitle className="flex items-center gap-3 text-xl">
-                <div className="p-2 bg-orange-500/10 rounded-lg">
-                  <span className="text-xl">⚡</span>
-                </div>
-                Title with Side Arrows
-                <Badge variant="secondary" className="ml-auto bg-orange-100 text-orange-700">Title + Arrows</Badge>
-              </CardTitle>
-              <CardDescription className="text-base">
-                Professional layout with title on left and navigation controls on right
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="pt-0">
-              <TitleArrowsSlider
-                title="Flash Sale"
-                description="Limited time offers with professional navigation"
-                maxProducts={8}
-                accentColor="text-orange-500"
-              />
-            </CardContent>
-          </Card>
-
-          {/* 3. Large Side Arrows Only */}
-          <Card className="border-2 border-purple-500/10 bg-gradient-to-br from-white to-purple-50">
-            <CardHeader className="pb-6">
-              <CardTitle className="flex items-center gap-3 text-xl">
-                <div className="p-2 bg-purple-500/10 rounded-lg">
-                  <span className="text-xl">🎨</span>
-                </div>
-                Large Side Arrows
-                <Badge variant="secondary" className="ml-auto bg-purple-100 text-purple-700">Side Arrows</Badge>
-              </CardTitle>
-              <CardDescription className="text-base">
-                Minimal design with large floating arrows on each side for clean navigation
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="pt-0">
-              <SideArrowsSlider
-                maxProducts={6}
-                showTitle={true}
-                compact={false}
-              />
-            </CardContent>
-          </Card>
-
-          {/* 4. Centered Title with Flanking Arrows */}
-          <Card className="border-2 border-gradient-to-r from-purple-600/10 to-blue-600/10 bg-gradient-to-br from-white via-purple-50/30 to-blue-50">
-            <CardHeader className="pb-6">
-              <CardTitle className="flex items-center gap-3 text-xl">
-                <div className="p-2 bg-gradient-to-r from-purple-600/10 to-blue-600/10 rounded-lg">
-                  <span className="text-xl">👑</span>
-                </div>
-                Centered Title with Flanking Arrows
-                <Badge variant="secondary" className="ml-auto bg-gradient-to-r from-purple-100 to-blue-100 text-purple-700">Centered</Badge>
-              </CardTitle>
-              <CardDescription className="text-base">
-                Elegant symmetrical design with centered title and arrows flanking the title
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="pt-0">
-              <CenteredTitleSlider
-                title="Luxury Collection"
-                subtitle="Discover our most exclusive products"
-                maxProducts={8}
-                accentColor="from-purple-600 to-blue-600"
-                showRating={true}
-              />
-            </CardContent>
-          </Card>
-
-          {/* 5. Compact Side Arrows */}
-          <Card className="border-2 border-green-500/10 bg-gradient-to-br from-white to-green-50">
-            <CardHeader className="pb-6">
-              <CardTitle className="flex items-center gap-3 text-xl">
-                <div className="p-2 bg-green-500/10 rounded-lg">
-                  <span className="text-xl">📱</span>
-                </div>
-                Compact Navigation
-                <Badge variant="secondary" className="ml-auto bg-green-100 text-green-700">Compact</Badge>
-              </CardTitle>
-              <CardDescription className="text-base">
-                Space-efficient compact slider perfect for mobile and tight layouts
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="pt-0">
-              <SideArrowsSlider
-                maxProducts={8}
-                showTitle={false}
-                compact={true}
-              />
-            </CardContent>
-          </Card>
-
-          {/* 6. Vertical Slider */}
-          <Card className="border-2 border-blue-500/10 bg-gradient-to-br from-white to-blue-50">
-            <CardHeader className="pb-6">
-              <CardTitle className="flex items-center gap-3 text-xl">
-                <div className="p-2 bg-blue-500/10 rounded-lg">
-                  <span className="text-xl">🔄</span>
-                </div>
-                Vertical Product Slider
-                <Badge variant="secondary" className="ml-auto bg-blue-100 text-blue-700">Vertical</Badge>
-              </CardTitle>
-              <CardDescription className="text-base">
-                Unique vertical scrolling layout perfect for sidebar displays and compact spaces
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="pt-0">
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-                {/* Standard Vertical */}
-                <div className="bg-white/50 rounded-lg p-4 border border-blue-100">
-                  <div className="flex items-center gap-2 mb-4">
-                    <div className="w-2 h-2 bg-blue-500 rounded-full"></div>
-                    <h5 className="text-sm font-semibold text-blue-700">Standard</h5>
-                  </div>
-                  <VerticalProductSlider
-                    title="Featured"
-                    maxProducts={4}
-                    height="h-96"
-                    showPrice={true}
-                    showRating={true}
-                  />
-                </div>
-
-                {/* Compact Vertical */}
-                <div className="bg-white/50 rounded-lg p-4 border border-blue-100">
-                  <div className="flex items-center gap-2 mb-4">
-                    <div className="w-2 h-2 bg-green-500 rounded-full"></div>
-                    <h5 className="text-sm font-semibold text-green-700">Compact</h5>
-                  </div>
-                  <VerticalProductSlider
-                    title="Quick Picks"
-                    maxProducts={6}
-                    height="h-80"
-                    showPrice={true}
-                    showRating={false}
-                    compact={true}
-                  />
-                </div>
-
-                {/* Minimal Vertical */}
-                <div className="bg-white/50 rounded-lg p-4 border border-blue-100">
-                  <div className="flex items-center gap-2 mb-4">
-                    <div className="w-2 h-2 bg-purple-500 rounded-full"></div>
-                    <h5 className="text-sm font-semibold text-purple-700">Minimal</h5>
-                  </div>
-                  <VerticalProductSlider
-                    title="Trending"
-                    maxProducts={5}
-                    height="h-72"
-                    showPrice={false}
-                    showRating={false}
-                    compact={true}
-                  />
-                </div>
-              </div>
-            </CardContent>
-          </Card>
+      {/* Header */}
+      <div className="text-center mb-10">
+        <div className="flex items-center justify-center gap-3 mb-4">
+          <Store className="h-8 w-8 text-primary" />
+          <h1 className="text-4xl font-bold bg-gradient-to-r from-primary to-purple-600 bg-clip-text text-transparent">
+            Productos Destacados
+          </h1>
         </div>
-
-        {/* Original Carousels Section */}
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <Store className="h-5 w-5" />
-              Original Carousel Styles
-              <Badge variant="outline">Legacy</Badge>
-            </CardTitle>
-            <CardDescription>
-              Our original carousel implementations for comparison
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-12">
-            {/* Featured Hero */}
-            <div>
-              <h4 className="text-lg font-semibold mb-4 text-primary">Hero Carousel</h4>
-              <FeaturedProductsCarousel 
-                maxProducts={6}
-                showQuickActions={true}
-                compact={false}
-              />
-            </div>
-
-            {/* Original Product Carousel */}
-            <div>
-              <h4 className="text-lg font-semibold mb-4 text-primary">Standard Carousel</h4>
-              <ProductCarousel
-                title="Best Sellers"
-                description="Our top-performing products"
-                variant="bestseller"
-                maxProducts={6}
-                showRating={true}
-                autoplay={false}
-              />
-            </div>
-          </CardContent>
-        </Card>
-
-        {/* Component Showcase */}
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <Sparkles className="h-5 w-5" />
-              shadcn/ui Component Showcase
-            </CardTitle>
-            <CardDescription>
-              Demonstration of various shadcn/ui components with your custom theme
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-6">
-            {/* Button Variants */}
-            <div>
-              <h4 className="text-lg font-semibold mb-3">Button Variants</h4>
-              <div className="flex flex-wrap gap-3">
-                <Button variant="default">Default</Button>
-                <Button variant="secondary">Secondary</Button>
-                <Button variant="outline">Outline</Button>
-                <Button variant="destructive">Destructive</Button>
-                <Button variant="ghost">Ghost</Button>
-                <Button variant="link">Link</Button>
-              </div>
-            </div>
-
-            {/* Badge Variants */}
-            <div>
-              <h4 className="text-lg font-semibold mb-3">Badge Variants</h4>
-              <div className="flex flex-wrap gap-3">
-                <Badge variant="default">Default</Badge>
-                <Badge variant="secondary">Secondary</Badge>
-                <Badge variant="destructive">Destructive</Badge>
-                <Badge variant="outline">Outline</Badge>
-              </div>
-            </div>
-
-            {/* Card Examples */}
-            <div>
-              <h4 className="text-lg font-semibold mb-3">Card Examples</h4>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <Card>
-                  <CardHeader>
-                    <CardTitle>Standard Card</CardTitle>
-                    <CardDescription>Basic card with header and content</CardDescription>
-                  </CardHeader>
-                  <CardContent>
-                    <p className="text-sm text-muted-foreground">
-                      This is a standard card component with proper spacing and typography.
-                    </p>
-                  </CardContent>
-                </Card>
-                
-                <Card className="border-primary">
-                  <CardHeader>
-                    <CardTitle className="text-primary">Themed Card</CardTitle>
-                    <CardDescription>Card with custom theme colors</CardDescription>
-                  </CardHeader>
-                  <CardContent>
-                    <Button className="w-full" style={{ backgroundColor: themeColor }}>
-                      Themed Button
-                    </Button>
-                  </CardContent>
-                </Card>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-
-        {/* Shopify Integration Features */}
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <ShoppingCart className="h-5 w-5" />
-              Shopify Integration Features
-            </CardTitle>
-            <CardDescription>
-              This extension includes comprehensive Shopify integration capabilities
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-              {[
-                { icon: '🛒', title: 'Real Cart API', desc: 'Live cart updates' },
-                { icon: '💰', title: 'Money Formatting', desc: 'Shop currency support' },
-                { icon: '📦', title: 'Product Variants', desc: 'Multiple options' },
-                { icon: '🎯', title: 'Theme Integration', desc: 'Liquid + React' },
-              ].map((feature, index) => (
-                <Card key={index} className="text-center p-4">
-                  <div className="text-2xl mb-2">{feature.icon}</div>
-                  <h4 className="font-semibold mb-1">{feature.title}</h4>
-                  <p className="text-sm text-muted-foreground">{feature.desc}</p>
-                </Card>
-              ))}
-            </div>
-          </CardContent>
-        </Card>
-
-        {/* Cart Error Display */}
-        {cartError && (
-          <Alert variant="destructive">
-            <Info className="h-4 w-4" />
-            <AlertTitle>Cart Error</AlertTitle>
-            <AlertDescription>{cartError}</AlertDescription>
+        
+        {showDescription && (
+          <p className="text-lg text-muted-foreground max-w-2xl mx-auto mb-6">
+            Descubre nuestra selección de productos con integración completa al carrito de Shopify
+          </p>
+        )}
+        
+        {/* Cart Status */}
+        {cart && itemCount > 0 && (
+          <Alert className="max-w-md mx-auto">
+            <ShoppingCart className="h-4 w-4" />
+            <AlertTitle>Carrito</AlertTitle>
+            <AlertDescription>
+              {itemCount} productos • ${(totalPrice / 100).toFixed(2)}
+            </AlertDescription>
           </Alert>
         )}
+      </div>
 
-        {/* Footer */}
-        <Card className="text-center">
-          <CardContent className="pt-6">
-            <div className="flex flex-wrap items-center justify-center gap-4 text-sm text-muted-foreground">
-              <span>Block ID: {blockId}</span>
-              <span>•</span>
-              <span>React {React.version}</span>
-              <span>•</span>
-              <span>shadcn/ui + Tailwind CSS</span>
-              {shopifyData.shop?.domain && (
-                <>
-                  <span>•</span>
-                  <span>{shopifyData.shop.domain}</span>
-                </>
-              )}
-            </div>
+      {/* Main Product Carousel */}
+      {products.length > 0 && (
+        <Carousel
+          opts={{
+            align: "start",
+            loop: true,
+          }}
+          className="w-full"
+        >
+          <CarouselContent className="-ml-4">
+            {products.map((product, index) => {
+              const selectedVariant = getSelectedVariant(product);
+              const productImage = getProductImage(product, selectedVariant?.id);
+              
+              return (
+                <CarouselItem key={product.id} className="pl-4 md:basis-1/2 lg:basis-1/4">
+                  <Card className="group overflow-hidden border shadow-sm bg-white transition-all duration-300 hover:shadow-xl hover:border-primary/50 h-full">
+                    {/* Product Image */}
+                    <div className="relative overflow-hidden">
+                      <img
+                        src={productImage}
+                        alt={selectedVariant?.featured_image?.alt || product.title}
+                        className="h-56 w-full object-cover transition-transform duration-300 group-hover:scale-105"
+                      />
+                      
+                      {/* Floating Action Buttons */}
+                      <div className="absolute top-4 right-4 flex flex-col gap-2 opacity-0 group-hover:opacity-100 transition-opacity duration-300">
+                        <Button
+                          size="sm"
+                          variant="secondary"
+                          className="w-10 h-10 rounded-full bg-white/90 hover:bg-white shadow-lg"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            console.log(`Wishlist ${product.title}`);
+                          }}
+                        >
+                          <Heart className="h-4 w-4 text-red-500" />
+                        </Button>
+                        <Button
+                          size="sm"
+                          variant="secondary"
+                          className="w-10 h-10 rounded-full bg-white/90 hover:bg-white shadow-lg"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            console.log(`Quick view ${product.title}`);
+                          }}
+                        >
+                          <Eye className="h-4 w-4" />
+                        </Button>
+                      </div>
+
+                      {/* Featured Badge */}
+                      {index < 3 && (
+                        <Badge className="absolute top-4 left-4 bg-gradient-to-r from-yellow-400 to-orange-500 text-black font-bold">
+                          ⭐ Destacado
+                        </Badge>
+                      )}
+
+                      {/* Sale Badge */}
+                      {selectedVariant?.compare_at_price && (
+                        <Badge className="absolute top-4 left-4 bg-red-500 text-white font-semibold">
+                          OFERTA
+                        </Badge>
+                      )}
+                    </div>
+
+                    {/* Product Info */}
+                    <CardContent className="p-4 flex flex-col h-full">
+                      <div className="flex-1 space-y-3">
+                        {product.vendor && (
+                          <p className="text-xs text-muted-foreground uppercase tracking-wide">
+                            {product.vendor}
+                          </p>
+                        )}
+                        <h3 className="text-lg font-semibold line-clamp-2 group-hover:text-primary transition-colors">
+                          {product.title}
+                        </h3>
+                        
+                        {/* Rating */}
+                        <div className="flex items-center gap-1">
+                          {Array(5).fill(0).map((_, i) => (
+                            <Star 
+                              key={i} 
+                              className={cn(
+                                "h-3 w-3",
+                                i < 4 ? "fill-yellow-400 text-yellow-400" : "text-gray-300"
+                              )} 
+                            />
+                          ))}
+                          <span className="text-xs text-muted-foreground ml-1">
+                            (4.{Math.floor(Math.random() * 9) + 1})
+                          </span>
+                        </div>
+
+                        {/* Variant Selector */}
+                        {product.variants.length > 1 && (
+                          <div className="space-y-2">
+                            <label className="text-sm font-medium text-gray-700">
+                              Variante:
+                            </label>
+                            <div className="relative">
+                              <select
+                                value={selectedVariant?.id || ''}
+                                onChange={(e) => handleVariantChange(product.id, parseInt(e.target.value))}
+                                className="w-full px-3 py-2 text-sm border border-gray-300 rounded-md bg-white appearance-none cursor-pointer focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent"
+                              >
+                                {product.variants.map((variant) => (
+                                  <option key={variant.id} value={variant.id}>
+                                    {variant.title} - {formatMoney(variant.price)}
+                                  </option>
+                                ))}
+                              </select>
+                              <ChevronDown className="absolute right-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400 pointer-events-none" />
+                            </div>
+                          </div>
+                        )}
+
+                        {/* Price */}
+                        <div className="space-y-1">
+                          <div className="flex items-center gap-2">
+                            <span className="text-xl font-bold text-primary">
+                              {formatMoney(selectedVariant?.price || '0')}
+                            </span>
+                            {selectedVariant?.compare_at_price && (
+                              <span className="text-sm text-muted-foreground line-through">
+                                {formatMoney(selectedVariant.compare_at_price)}
+                              </span>
+                            )}
+                          </div>
+                          {selectedVariant?.available && (
+                            <Badge variant="secondary" className="bg-green-100 text-green-700 text-xs">
+                              Disponible
+                            </Badge>
+                          )}
+                        </div>
+
+                        {/* Tags */}
+                        {product.tags && product.tags.length > 0 && (
+                          <div className="flex flex-wrap gap-1">
+                            {product.tags.slice(0, 2).map((tag: string) => (
+                              <Badge key={tag} variant="outline" className="text-xs">
+                                {tag}
+                              </Badge>
+                            ))}
+                          </div>
+                        )}
+                      </div>
+
+                      {/* Add to Cart Button */}
+                      <Button 
+                        className={cn(
+                          "w-full h-12 mt-4 font-semibold transition-all duration-300",
+                          lastAddedItem === selectedVariant?.id?.toString()
+                            ? "bg-green-600 hover:bg-green-700 text-white"
+                            : "bg-primary text-primary-foreground hover:bg-primary/90"
+                        )}
+                        disabled={isAdding || !selectedVariant?.available}
+                        onClick={async () => {
+                          if (selectedVariant?.id) {
+                            await addToCart(selectedVariant.id, 1);
+                          }
+                        }}
+                        style={{ backgroundColor: themeColor }}
+                      >
+                        {isAdding && lastAddedItem === selectedVariant?.id?.toString() ? (
+                          <>
+                            <div className="h-4 w-4 animate-spin rounded-full border-2 border-current border-t-transparent mr-2" />
+                            Agregando...
+                          </>
+                        ) : lastAddedItem === selectedVariant?.id?.toString() ? (
+                          <>
+                            ✓ ¡Agregado!
+                          </>
+                        ) : (
+                          <>
+                            <ShoppingCart className="h-4 w-4 mr-2" />
+                            Agregar al Carrito
+                          </>
+                        )}
+                      </Button>
+                    </CardContent>
+                  </Card>
+                </CarouselItem>
+              );
+            })}
+          </CarouselContent>
+          
+          <CarouselPrevious className="left-2" />
+          <CarouselNext className="right-2" />
+        </Carousel>
+      )}
+
+      {/* Empty State */}
+      {products.length === 0 && !loading && (
+        <Card className="text-center py-16">
+          <CardContent>
+            <Store className="h-16 w-16 text-muted-foreground mx-auto mb-4" />
+            <CardTitle className="mb-2">No hay productos disponibles</CardTitle>
+            <CardDescription>
+              Agrega productos a tu tienda para ver el widget en acción
+            </CardDescription>
           </CardContent>
         </Card>
+      )}
+
+      {/* Cart Error Display */}
+      {cartError && (
+        <Alert variant="destructive" className="mt-6">
+          <Info className="h-4 w-4" />
+          <AlertTitle>Error del Carrito</AlertTitle>
+          <AlertDescription>{cartError}</AlertDescription>
+        </Alert>
+      )}
+
+      {/* Footer */}
+      <div className="mt-8 text-center">
+        <div className="flex flex-wrap items-center justify-center gap-4 text-sm text-muted-foreground">
+          <Badge variant="secondary" className="gap-1">
+            <Store className="h-3 w-3" />
+            React Extension
+          </Badge>
+          <Badge variant="secondary" className="gap-1">
+            <ShoppingCart className="h-3 w-3" />
+            Shopify Integration
+          </Badge>
+          {blockId && (
+            <Badge variant="outline" className="gap-1">
+              ID: {blockId}
+            </Badge>
+          )}
+        </div>
       </div>
     </div>
   );
