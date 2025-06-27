@@ -163,15 +163,28 @@ export class ShopifyCartAPI {
  */
 export class ThemeIntegration {
   /**
-   * Trigger theme cart drawer/modal (if theme supports it)
+   * Open cart drawer - Updated to use React Sheet drawer
    */
   static openCartDrawer(): void {
-    // Try multiple common theme patterns
+    console.log('🛒 ThemeIntegration: Opening cart drawer...');
+    
+    // First try to open React cart drawer
+    if ((window as any).openCartDrawer) {
+      (window as any).openCartDrawer();
+      return;
+    }
+
+    // Fallback to dispatching events for React drawer
+    document.dispatchEvent(new CustomEvent('cart:open', {
+      bubbles: true,
+      detail: { source: 'theme-integration' }
+    }));
+
+    // Additional fallback events
     const events = [
-      'cart:open',
-      'cartDrawer:open',
-      'drawer:cart:open',
-      'theme:cart:open',
+      'drawer:open',
+      'cart-drawer:open',
+      'open-cart-drawer',
     ];
 
     events.forEach(eventName => {
@@ -181,22 +194,7 @@ export class ThemeIntegration {
       }));
     });
 
-    // Try common selectors for cart buttons
-    const cartSelectors = [
-      '[data-cart-drawer-toggle]',
-      '.cart-drawer-toggle',
-      '.js-drawer-open-cart',
-      '.cart-toggle',
-      '.header-cart',
-    ];
-
-    for (const selector of cartSelectors) {
-      const element = document.querySelector(selector) as HTMLElement;
-      if (element) {
-        element.click();
-        break;
-      }
-    }
+    console.log('🛒 Cart drawer events dispatched');
   }
 
   /**
@@ -209,6 +207,7 @@ export class ThemeIntegration {
       '[data-cart-count]',
       '.header-cart-count',
       '.cart-counter',
+      '.cart-count-bubble',
     ];
 
     countSelectors.forEach(selector => {
@@ -216,6 +215,10 @@ export class ThemeIntegration {
       elements.forEach(element => {
         if (element.textContent !== null) {
           element.textContent = count.toString();
+        }
+        // Also update data attributes
+        if (element.hasAttribute('data-cart-count')) {
+          element.setAttribute('data-cart-count', count.toString());
         }
       });
     });

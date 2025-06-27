@@ -165,6 +165,12 @@ export const useShopifyCart = (): UseShopifyCartReturn => {
         }
         setLastAddedItem(variantId.toString());
         
+        // Dispatch cart added event for auto-opening drawer
+        document.dispatchEvent(new CustomEvent('cart:added', {
+          bubbles: true,
+          detail: { variantId, quantity, source: 'react-extension' }
+        }));
+        
         // Clear the last added item after 3 seconds
         setTimeout(() => setLastAddedItem(null), 3000);
         

@@ -3,7 +3,7 @@
 client_id = "9db355888f27c083071def35f3a1c226"
 name = "testing-react-extension"
 handle = "testing-react-extension"
-application_url = "https://fonts-babies-nsw-trained.trycloudflare.com"
+application_url = "https://sad-pursuit-membrane-at.trycloudflare.com"
 embedded = true
 
 [build]
@@ -27,13 +27,13 @@ scopes = "write_products,read_products"
 
 [auth]
 redirect_urls = [
-  "https://fonts-babies-nsw-trained.trycloudflare.com/auth/callback",
-  "https://fonts-babies-nsw-trained.trycloudflare.com/auth/shopify/callback",
-  "https://fonts-babies-nsw-trained.trycloudflare.com/api/auth/callback"
+  "https://sad-pursuit-membrane-at.trycloudflare.com/auth/callback",
+  "https://sad-pursuit-membrane-at.trycloudflare.com/auth/shopify/callback",
+  "https://sad-pursuit-membrane-at.trycloudflare.com/api/auth/callback"
 ]
 
 [app_proxy]
-url = "https://fonts-babies-nsw-trained.trycloudflare.com/api/proxy"
+url = "https://sad-pursuit-membrane-at.trycloudflare.com/api/proxy"
 subpath = "recommendations"
 prefix = "apps"
 

@@ -12,136 +12,65 @@ import {
   CarouselPrevious,
 } from './ui/carousel';
 import { cn } from '../lib/utils';
-import { ShoppingCart, Store, Info, Star, Heart, Eye, ChevronDown } from 'lucide-react';
-
-// Real Shopify Product Interface based on proxy data
-interface ShopifyRealProduct {
-  id: number;
-  title: string;
-  handle: string;
-  body_html: string;
-  published_at: string;
-  created_at: string;
-  updated_at: string;
-  vendor: string;
-  product_type: string;
-  tags: string[];
-  variants: Array<{
-    id: number;
-    title: string;
-    option1?: string;
-    option2?: string;
-    option3?: string;
-    sku: string;
-    requires_shipping: boolean;
-    taxable: boolean;
-    featured_image?: {
-      id: number;
-      product_id: number;
-      position: number;
-      alt: string;
-      width: number;
-      height: number;
-      src: string;
-      variant_ids: number[];
-    };
-    available: boolean;
-    price: string;
-    grams: number;
-    compare_at_price?: string;
-    position: number;
-    product_id: number;
-  }>;
-  images?: Array<{
-    id: number;
-    product_id: number;
-    position: number;
-    alt: string;
-    width: number;
-    height: number;
-    src: string;
-  }>;
-  featured_image?: {
-    id: number;
-    product_id: number;
-    position: number;
-    alt: string;
-    width: number;
-    height: number;
-    src: string;
-  };
-}
-
-interface TestingBlockProps {
-  blockId?: string;
-  themeColor?: string;
-  showDescription?: boolean;
-  animationEnabled?: boolean;
-  interactionType?: string;
-  productData?: string;
-}
+import { ShoppingCart, Store, Info, Filter, Grid, LayoutGrid, AlertTriangle } from 'lucide-react';
+import { ProductCard } from './ProductCard';
+import { ShopifyApiService } from '../services/shopify-api.service';
+import type { ShopifyProduct, TestingBlockProps } from '../types/shopify.types';
 
 /**
- * Simplified React Extension Widget - Real Products from Proxy with Variant Selection
+ * Enhanced React Extension Widget with Robust Data Validation
+ * Handles real-world API inconsistencies gracefully
  */
 const TestingBlock: React.FC<TestingBlockProps> = ({
   blockId,
   themeColor = '#007bff',
   showDescription = true,
   animationEnabled = true,
-  interactionType = 'both',
-  productData,
 }) => {
   const [isVisible, setIsVisible] = useState(false);
-  const [products, setProducts] = useState<ShopifyRealProduct[]>([]);
+  const [products, setProducts] = useState<ShopifyProduct[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [selectedVariants, setSelectedVariants] = useState<{[productId: number]: number}>({});
+  const [validationWarnings, setValidationWarnings] = useState<string[]>([]);
+  const [viewMode, setViewMode] = useState<'grid' | 'carousel'>('carousel');
+  const [filterByVendor, setFilterByVendor] = useState<string>('all');
 
   // Use cart integration
   const { itemCount, totalPrice, cart, error: cartError, addToCart, isAdding, lastAddedItem } = useShopifyCart();
 
-  // Fetch products directly from proxy
+  // Fetch products with enhanced error handling
   useEffect(() => {
     const fetchProducts = async () => {
       try {
         setLoading(true);
         setError(null);
+        setValidationWarnings([]);
 
-        const response = await fetch('/apps/recommendations', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({
-            action: 'get_products',
-            limit: 8
-          }),
-        });
-
-        if (!response.ok) {
-          throw new Error(`HTTP error! status: ${response.status}`);
-        }
-
-        const data = await response.json();
+        const result = await ShopifyApiService.fetchProducts(12);
         
-        if (data.success && data.products) {
-          setProducts(data.products);
+        if (result.success) {
+          setProducts(result.products);
+          console.log(`✅ Loaded ${result.products.length} products with data validation`);
           
-          // Set default selected variants (first variant of each product)
-          const defaultVariants: {[productId: number]: number} = {};
-          data.products.forEach((product: ShopifyRealProduct) => {
-            if (product.variants && product.variants.length > 0) {
-              defaultVariants[product.id] = product.variants[0].id;
-            }
-          });
-          setSelectedVariants(defaultVariants);
+          // Check for common data quality issues
+          const warnings: string[] = [];
+          const productsWithoutImages = result.products.filter(p => !p.featured_image && (!p.images || p.images.length === 0));
+          const productsWithoutVariants = result.products.filter(p => !p.variants || p.variants.length === 0);
+          
+          if (productsWithoutImages.length > 0) {
+            warnings.push(`${productsWithoutImages.length} products missing images`);
+          }
+          if (productsWithoutVariants.length > 0) {
+            warnings.push(`${productsWithoutVariants.length} products without variants`);
+          }
+          
+          setValidationWarnings(warnings);
         } else {
-          setError('No se pudieron cargar los productos');
+          setError(result.error || 'Could not load products');
         }
       } catch (err) {
         console.error('Error fetching products:', err);
-        setError('Error al cargar productos del proxy');
+        setError('Error loading products from proxy');
       } finally {
         setLoading(false);
       }
@@ -158,43 +87,16 @@ const TestingBlock: React.FC<TestingBlockProps> = ({
     return () => clearTimeout(timer);
   }, []);
 
-  const formatMoney = (price: string): string => {
-    const amount = parseFloat(price);
-    return `$${amount.toFixed(2)}`;
-  };
+  // Get unique vendors for filter
+  const vendors = ['all', ...new Set(products.map(p => p.vendor).filter(Boolean))];
+  
+  // Filter products by vendor
+  const filteredProducts = filterByVendor === 'all' 
+    ? products 
+    : products.filter(p => p.vendor === filterByVendor);
 
-  const getProductImage = (product: ShopifyRealProduct, variantId?: number): string => {
-    // Try to get variant-specific image first
-    if (variantId) {
-      const variant = product.variants.find(v => v.id === variantId);
-      if (variant?.featured_image?.src) {
-        return variant.featured_image.src;
-      }
-    }
-
-    // Fallback to product featured image
-    if (product.featured_image?.src) {
-      return product.featured_image.src;
-    }
-
-    // Fallback to first image
-    if (product.images && product.images.length > 0) {
-      return product.images[0].src;
-    }
-
-    return 'https://via.placeholder.com/300x300?text=No+Image';
-  };
-
-  const getSelectedVariant = (product: ShopifyRealProduct) => {
-    const selectedVariantId = selectedVariants[product.id];
-    return product.variants.find(v => v.id === selectedVariantId) || product.variants[0];
-  };
-
-  const handleVariantChange = (productId: number, variantId: number) => {
-    setSelectedVariants(prev => ({
-      ...prev,
-      [productId]: variantId
-    }));
+  const handleAddToCart = async (variantId: number, quantity: number): Promise<boolean> => {
+    return await addToCart(variantId, quantity);
   };
 
   if (loading) {
@@ -205,7 +107,7 @@ const TestingBlock: React.FC<TestingBlockProps> = ({
           <div className="h-4 bg-muted rounded w-96 mx-auto animate-pulse" />
         </div>
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-          {Array(4).fill(0).map((_, i) => (
+          {Array(8).fill(0).map((_, i) => (
             <div key={i} className="h-96 bg-muted rounded-xl animate-pulse" />
           ))}
         </div>
@@ -236,233 +138,150 @@ const TestingBlock: React.FC<TestingBlockProps> = ({
       } as React.CSSProperties}
     >
       {/* Header */}
-      <div className="text-center mb-10">
+      <div className="text-center mb-8">
         <div className="flex items-center justify-center gap-3 mb-4">
           <Store className="h-8 w-8 text-primary" />
           <h1 className="text-4xl font-bold bg-gradient-to-r from-primary to-purple-600 bg-clip-text text-transparent">
-            Productos Destacados
+            Featured Products
           </h1>
         </div>
         
         {showDescription && (
           <p className="text-lg text-muted-foreground max-w-2xl mx-auto mb-6">
-            Descubre nuestra selección de productos con integración completa al carrito de Shopify
+            Discover our curated selection with validated data & cart integration
           </p>
+        )}
+
+        {/* Data Quality Warnings */}
+        {validationWarnings.length > 0 && (
+          <Alert className="max-w-2xl mx-auto mb-6">
+            <AlertTriangle className="h-4 w-4" />
+            <AlertTitle>Data Quality Notes</AlertTitle>
+            <AlertDescription>
+              {validationWarnings.join(', ')} - handled gracefully by Zod validation
+            </AlertDescription>
+          </Alert>
         )}
         
         {/* Cart Status */}
         {cart && itemCount > 0 && (
-          <Alert className="max-w-md mx-auto">
+          <Alert className="max-w-md mx-auto mb-6">
             <ShoppingCart className="h-4 w-4" />
-            <AlertTitle>Carrito</AlertTitle>
+            <AlertTitle>Shopping Cart</AlertTitle>
             <AlertDescription>
-              {itemCount} productos • ${(totalPrice / 100).toFixed(2)}
+              {itemCount} items • ${(totalPrice / 100).toFixed(2)}
             </AlertDescription>
           </Alert>
         )}
       </div>
 
-      {/* Main Product Carousel */}
-      {products.length > 0 && (
-        <Carousel
-          opts={{
-            align: "start",
-            loop: true,
-          }}
-          className="w-full"
-        >
-          <CarouselContent className="-ml-4">
-            {products.map((product, index) => {
-              const selectedVariant = getSelectedVariant(product);
-              const productImage = getProductImage(product, selectedVariant?.id);
-              
-              return (
-                <CarouselItem key={product.id} className="pl-4 md:basis-1/2 lg:basis-1/4">
-                  <Card className="group overflow-hidden border shadow-sm bg-white transition-all duration-300 hover:shadow-xl hover:border-primary/50 h-full">
-                    {/* Product Image */}
-                    <div className="relative overflow-hidden">
-                      <img
-                        src={productImage}
-                        alt={selectedVariant?.featured_image?.alt || product.title}
-                        className="h-56 w-full object-cover transition-transform duration-300 group-hover:scale-105"
-                      />
-                      
-                      {/* Floating Action Buttons */}
-                      <div className="absolute top-4 right-4 flex flex-col gap-2 opacity-0 group-hover:opacity-100 transition-opacity duration-300">
-                        <Button
-                          size="sm"
-                          variant="secondary"
-                          className="w-10 h-10 rounded-full bg-white/90 hover:bg-white shadow-lg"
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            console.log(`Wishlist ${product.title}`);
-                          }}
-                        >
-                          <Heart className="h-4 w-4 text-red-500" />
-                        </Button>
-                        <Button
-                          size="sm"
-                          variant="secondary"
-                          className="w-10 h-10 rounded-full bg-white/90 hover:bg-white shadow-lg"
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            console.log(`Quick view ${product.title}`);
-                          }}
-                        >
-                          <Eye className="h-4 w-4" />
-                        </Button>
-                      </div>
+      {/* Controls */}
+      <div className="flex flex-col sm:flex-row items-center justify-between gap-4 mb-6">
+        {/* View Mode Toggle */}
+        <div className="flex items-center gap-2">
+          <Button
+            variant={viewMode === 'carousel' ? 'default' : 'outline'}
+            size="sm"
+            onClick={() => setViewMode('carousel')}
+          >
+            <LayoutGrid className="h-4 w-4 mr-2" />
+            Carousel
+          </Button>
+          <Button
+            variant={viewMode === 'grid' ? 'default' : 'outline'}
+            size="sm"
+            onClick={() => setViewMode('grid')}
+          >
+            <Grid className="h-4 w-4 mr-2" />
+            Grid
+          </Button>
+        </div>
 
-                      {/* Featured Badge */}
-                      {index < 3 && (
-                        <Badge className="absolute top-4 left-4 bg-gradient-to-r from-yellow-400 to-orange-500 text-black font-bold">
-                          ⭐ Destacado
-                        </Badge>
-                      )}
+        {/* Vendor Filter */}
+        <div className="flex items-center gap-2">
+          <Filter className="h-4 w-4 text-muted-foreground" />
+          <select
+            value={filterByVendor}
+            onChange={(e) => setFilterByVendor(e.target.value)}
+            className="px-3 py-2 text-sm border border-gray-300 rounded-md bg-white focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent"
+          >
+            {vendors.map((vendor) => (
+              <option key={vendor} value={vendor}>
+                {vendor === 'all' ? 'All Vendors' : vendor}
+              </option>
+            ))}
+          </select>
+        </div>
+      </div>
 
-                      {/* Sale Badge */}
-                      {selectedVariant?.compare_at_price && (
-                        <Badge className="absolute top-4 left-4 bg-red-500 text-white font-semibold">
-                          OFERTA
-                        </Badge>
-                      )}
-                    </div>
-
-                    {/* Product Info */}
-                    <CardContent className="p-4 flex flex-col h-full">
-                      <div className="flex-1 space-y-3">
-                        {product.vendor && (
-                          <p className="text-xs text-muted-foreground uppercase tracking-wide">
-                            {product.vendor}
-                          </p>
-                        )}
-                        <h3 className="text-lg font-semibold line-clamp-2 group-hover:text-primary transition-colors">
-                          {product.title}
-                        </h3>
-                        
-                        {/* Rating */}
-                        <div className="flex items-center gap-1">
-                          {Array(5).fill(0).map((_, i) => (
-                            <Star 
-                              key={i} 
-                              className={cn(
-                                "h-3 w-3",
-                                i < 4 ? "fill-yellow-400 text-yellow-400" : "text-gray-300"
-                              )} 
-                            />
-                          ))}
-                          <span className="text-xs text-muted-foreground ml-1">
-                            (4.{Math.floor(Math.random() * 9) + 1})
-                          </span>
-                        </div>
-
-                        {/* Variant Selector */}
-                        {product.variants.length > 1 && (
-                          <div className="space-y-2">
-                            <label className="text-sm font-medium text-gray-700">
-                              Variante:
-                            </label>
-                            <div className="relative">
-                              <select
-                                value={selectedVariant?.id || ''}
-                                onChange={(e) => handleVariantChange(product.id, parseInt(e.target.value))}
-                                className="w-full px-3 py-2 text-sm border border-gray-300 rounded-md bg-white appearance-none cursor-pointer focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent"
-                              >
-                                {product.variants.map((variant) => (
-                                  <option key={variant.id} value={variant.id}>
-                                    {variant.title} - {formatMoney(variant.price)}
-                                  </option>
-                                ))}
-                              </select>
-                              <ChevronDown className="absolute right-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400 pointer-events-none" />
-                            </div>
-                          </div>
-                        )}
-
-                        {/* Price */}
-                        <div className="space-y-1">
-                          <div className="flex items-center gap-2">
-                            <span className="text-xl font-bold text-primary">
-                              {formatMoney(selectedVariant?.price || '0')}
-                            </span>
-                            {selectedVariant?.compare_at_price && (
-                              <span className="text-sm text-muted-foreground line-through">
-                                {formatMoney(selectedVariant.compare_at_price)}
-                              </span>
-                            )}
-                          </div>
-                          {selectedVariant?.available && (
-                            <Badge variant="secondary" className="bg-green-100 text-green-700 text-xs">
-                              Disponible
-                            </Badge>
-                          )}
-                        </div>
-
-                        {/* Tags */}
-                        {product.tags && product.tags.length > 0 && (
-                          <div className="flex flex-wrap gap-1">
-                            {product.tags.slice(0, 2).map((tag: string) => (
-                              <Badge key={tag} variant="outline" className="text-xs">
-                                {tag}
-                              </Badge>
-                            ))}
-                          </div>
-                        )}
-                      </div>
-
-                      {/* Add to Cart Button */}
-                      <Button 
-                        className={cn(
-                          "w-full h-12 mt-4 font-semibold transition-all duration-300",
-                          lastAddedItem === selectedVariant?.id?.toString()
-                            ? "bg-green-600 hover:bg-green-700 text-white"
-                            : "bg-primary text-primary-foreground hover:bg-primary/90"
-                        )}
-                        disabled={isAdding || !selectedVariant?.available}
-                        onClick={async () => {
-                          if (selectedVariant?.id) {
-                            await addToCart(selectedVariant.id, 1);
-                          }
-                        }}
-                        style={{ backgroundColor: themeColor }}
-                      >
-                        {isAdding && lastAddedItem === selectedVariant?.id?.toString() ? (
-                          <>
-                            <div className="h-4 w-4 animate-spin rounded-full border-2 border-current border-t-transparent mr-2" />
-                            Agregando...
-                          </>
-                        ) : lastAddedItem === selectedVariant?.id?.toString() ? (
-                          <>
-                            ✓ ¡Agregado!
-                          </>
-                        ) : (
-                          <>
-                            <ShoppingCart className="h-4 w-4 mr-2" />
-                            Agregar al Carrito
-                          </>
-                        )}
-                      </Button>
-                    </CardContent>
-                  </Card>
+      {/* Products Display */}
+      {filteredProducts.length > 0 ? (
+        viewMode === 'carousel' ? (
+          /* Carousel View */
+          <Carousel
+            opts={{
+              align: "start",
+              loop: true,
+            }}
+            className="w-full"
+          >
+            <CarouselContent className="-ml-4">
+              {filteredProducts.map((product) => (
+                <CarouselItem key={product.id} className="pl-4 md:basis-1/2 lg:basis-1/3 xl:basis-1/4">
+                  <ProductCard
+                    product={product}
+                    onAddToCart={handleAddToCart}
+                    isAdding={isAdding}
+                    lastAddedItem={lastAddedItem}
+                    themeColor={themeColor}
+                    showQuickActions={true}
+                    compact={false}
+                  />
                 </CarouselItem>
-              );
-            })}
-          </CarouselContent>
-          
-          <CarouselPrevious className="left-2" />
-          <CarouselNext className="right-2" />
-        </Carousel>
-      )}
-
-      {/* Empty State */}
-      {products.length === 0 && !loading && (
+              ))}
+            </CarouselContent>
+            
+            <CarouselPrevious className="left-2" />
+            <CarouselNext className="right-2" />
+          </Carousel>
+        ) : (
+          /* Grid View */
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+            {filteredProducts.map((product) => (
+              <ProductCard
+                key={product.id}
+                product={product}
+                onAddToCart={handleAddToCart}
+                isAdding={isAdding}
+                lastAddedItem={lastAddedItem}
+                themeColor={themeColor}
+                showQuickActions={true}
+                compact={false}
+              />
+            ))}
+          </div>
+        )
+      ) : (
+        /* Empty State */
         <Card className="text-center py-16">
           <CardContent>
             <Store className="h-16 w-16 text-muted-foreground mx-auto mb-4" />
-            <CardTitle className="mb-2">No hay productos disponibles</CardTitle>
+            <CardTitle className="mb-2">No products available</CardTitle>
             <CardDescription>
-              Agrega productos a tu tienda para ver el widget en acción
+              {filterByVendor !== 'all' 
+                ? `No products found for vendor "${filterByVendor}"`
+                : 'Add products to your store to see them here'
+              }
             </CardDescription>
+            {filterByVendor !== 'all' && (
+              <Button 
+                onClick={() => setFilterByVendor('all')}
+                variant="outline"
+                className="mt-4"
+              >
+                Show All Products
+              </Button>
+            )}
           </CardContent>
         </Card>
       )}
@@ -471,7 +290,7 @@ const TestingBlock: React.FC<TestingBlockProps> = ({
       {cartError && (
         <Alert variant="destructive" className="mt-6">
           <Info className="h-4 w-4" />
-          <AlertTitle>Error del Carrito</AlertTitle>
+          <AlertTitle>Cart Error</AlertTitle>
           <AlertDescription>{cartError}</AlertDescription>
         </Alert>
       )}
@@ -481,15 +300,24 @@ const TestingBlock: React.FC<TestingBlockProps> = ({
         <div className="flex flex-wrap items-center justify-center gap-4 text-sm text-muted-foreground">
           <Badge variant="secondary" className="gap-1">
             <Store className="h-3 w-3" />
-            React Extension
+            React + Zod
           </Badge>
           <Badge variant="secondary" className="gap-1">
             <ShoppingCart className="h-3 w-3" />
-            Shopify Integration
+            Validated Data
           </Badge>
           {blockId && (
             <Badge variant="outline" className="gap-1">
               ID: {blockId}
+            </Badge>
+          )}
+          <Badge variant="outline" className="gap-1">
+            {filteredProducts.length} Products
+          </Badge>
+          {validationWarnings.length > 0 && (
+            <Badge variant="outline" className="gap-1 text-orange-600">
+              <AlertTriangle className="h-3 w-3" />
+              Data Fixed
             </Badge>
           )}
         </div>

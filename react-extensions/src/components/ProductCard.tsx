@@ -1,287 +1,263 @@
 import React, { useState } from 'react';
-import { useShopifyCart } from '../hooks/useShopifyCart';
-
-interface Product {
-  id: string;
-  title: string;
-  handle?: string;
-  price: string;
-  priceMax?: string;
-  compareAtPrice?: string;
-  priceVaries?: boolean;
-  description: string;
-  image: string;
-  images?: string[];
-  vendor?: string;
-  type?: string;
-  tags?: string[];
-  available?: boolean;
-  variants?: Array<{
-    id: string;
-    title: string;
-    price: string;
-    originalPrice?: number;
-    compareAtPrice?: string;
-    available: boolean;
-    sku?: string;
-    image?: string;
-    options?: {
-      option1?: string;
-      option2?: string;
-      option3?: string;
-    };
-  }>;
-  options?: Array<{
-    name: string;
-    values: string[];
-  }>;
-}
-
-interface ProductCardProps {
-  product: Product;
-  themeColor: string;
-  animationEnabled: boolean;
-}
+import { Card, CardContent, CardHeader, CardTitle } from './ui/card';
+import { Button } from './ui/button';
+import { Badge } from './ui/badge';
+import { cn } from '../lib/utils';
+import { ShoppingCart, Heart, Eye, Star, ChevronDown } from 'lucide-react';
+import type { ProductCardProps, ShopifyVariant } from '../types/shopify.types';
 
 /**
- * Product card component with real Shopify cart integration
+ * Enhanced Product Card Component
+ * Uses validated Shopify product data with Zod types
  */
-const ProductCard: React.FC<ProductCardProps> = ({
+export const ProductCard: React.FC<ProductCardProps> = ({
   product,
-  themeColor,
-  animationEnabled,
+  onAddToCart,
+  isAdding,
+  lastAddedItem,
+  themeColor = '#007bff',
+  showQuickActions = true,
+  compact = false,
 }) => {
-  const [isLiked, setIsLiked] = useState(false);
-  const [quantity, setQuantity] = useState(1);
-  const [selectedVariant, setSelectedVariant] = useState(
-    product.variants?.[0]?.id || product.id
+  const [selectedVariantId, setSelectedVariantId] = useState<number>(
+    product.variants[0]?.id || product.id
   );
-  
-  // Get selected variant data
-  const selectedVariantData = product.variants?.find(v => v.id === selectedVariant) || product.variants?.[0];
-  
-  // Use the Shopify cart hook
-  const { 
-    addToCart, 
-    isAdding, 
-    error, 
-    lastAddedItem, 
-    openCart,
-    itemCount 
-  } = useShopifyCart();
+  const [quantity, setQuantity] = useState<number>(1);
+  const [isLiked, setIsLiked] = useState<boolean>(false);
 
-  const handleLike = () => {
-    setIsLiked(!isLiked);
+  const selectedVariant: ShopifyVariant | undefined = product.variants.find(
+    v => v.id === selectedVariantId
+  ) || product.variants[0];
+  
+  const formatMoney = (price: string): string => {
+    const amount = parseFloat(price);
+    return `$${amount.toFixed(2)}`;
   };
 
-  const handleQuantityChange = (delta: number) => {
-    setQuantity(Math.max(1, quantity + delta));
+  const getProductImage = (): string => {
+    return selectedVariant?.featured_image?.src || 
+           product.featured_image?.src || 
+           product.images[0]?.src || 
+           'https://via.placeholder.com/300x300?text=No+Image';
   };
 
-  const handleAddToCart = async () => {
-    const variantId = selectedVariant || product.id;
-    
-    // Add custom properties if needed
-    const properties = {
-      'Added from': 'React Extension',
-      'Component': 'ProductCard',
-      'Theme Color': themeColor,
-      'Product': product.title,
-      'Variant': selectedVariantData?.title || 'Default',
-    };
-
-    const success = await addToCart(variantId, quantity, properties);
-    
-    if (success) {
-      // Optionally open cart drawer after adding
-      setTimeout(() => {
-        openCart();
-      }, 500);
+  const handleAddToCart = async (): Promise<void> => {
+    if (selectedVariant?.available) {
+      await onAddToCart(selectedVariant.id, quantity);
     }
   };
 
-  const isJustAdded = lastAddedItem === selectedVariant;
+  const handleVariantChange = (event: React.ChangeEvent<HTMLSelectElement>): void => {
+    setSelectedVariantId(parseInt(event.target.value, 10));
+  };
+
+  const handleQuantityChange = (delta: number): void => {
+    setQuantity(prev => Math.max(1, prev + delta));
+  };
+
+  const isJustAdded: boolean = lastAddedItem === selectedVariant?.id?.toString();
+
+  if (!selectedVariant) {
+    return null; // Guard clause for missing variant
+  }
 
   return (
-    <div 
-      className={`product-card ${animationEnabled ? 'animated' : ''} ${isJustAdded ? 'just-added' : ''}`}
-      style={{ borderColor: themeColor }}
+    <Card 
+      className={cn(
+        "group relative overflow-hidden border shadow-sm bg-white transition-all duration-300 hover:shadow-xl hover:border-primary/50 h-full",
+        compact && "max-w-sm"
+      )}
     >
-      <div className="product-image-container">
+      {/* Product Image */}
+      <div className="relative overflow-hidden">
         <img
-          src={selectedVariantData?.image || product.image}
-          alt={product.title}
-          className="product-image"
-          loading="lazy"
-          onError={(e) => {
-            e.currentTarget.src = 'https://via.placeholder.com/400x300/f8f9fa/6c757d?text=No+Image';
-          }}
+          src={getProductImage()}
+          alt={selectedVariant.featured_image?.alt || product.title}
+          className={cn(
+            "w-full object-cover transition-transform duration-300 group-hover:scale-105",
+            compact ? "h-40" : "h-56"
+          )}
         />
-        <button
-          onClick={handleLike}
-          className={`like-button ${isLiked ? 'liked' : ''} ${animationEnabled ? 'animated' : ''}`}
-          style={{ color: isLiked ? themeColor : '#ccc' }}
-        >
-          {isLiked ? '❤️' : '🤍'}
-        </button>
         
-        {/* Cart count badge */}
-        {itemCount > 0 && (
-          <div className="cart-badge" style={{ backgroundColor: themeColor }}>
-            {itemCount}
+        {/* Overlay Actions */}
+        {showQuickActions && (
+          <div className="absolute top-4 right-4 flex flex-col gap-2 opacity-0 group-hover:opacity-100 transition-opacity duration-300">
+            <Button
+              size="sm"
+              variant="secondary"
+              className="w-10 h-10 rounded-full bg-white/90 hover:bg-white shadow-lg"
+              onClick={() => setIsLiked(!isLiked)}
+            >
+              <Heart className={cn("h-4 w-4", isLiked ? "text-red-500 fill-current" : "text-gray-500")} />
+            </Button>
+            <Button
+              size="sm"
+              variant="secondary"
+              className="w-10 h-10 rounded-full bg-white/90 hover:bg-white shadow-lg"
+            >
+              <Eye className="h-4 w-4 text-gray-500" />
+            </Button>
           </div>
         )}
 
-        {/* Vendor/Brand */}
-        {product.vendor && (
-          <div className="product-vendor" style={{ backgroundColor: themeColor }}>
-            {product.vendor}
-          </div>
+        {/* Sale Badge */}
+        {selectedVariant.compare_at_price && (
+          <Badge className="absolute top-4 left-4 bg-red-500 text-white font-semibold">
+            SALE
+          </Badge>
         )}
       </div>
-      
-      <div className="product-info">
-        <h5 className="product-title" style={{ color: themeColor }}>
-          {product.title}
-        </h5>
-        
-        <p className="product-description">
-          {product.description}
-        </p>
-        
-        {/* Price display with variants */}
-        <div className="product-pricing">
-          <div className="product-price" style={{ color: themeColor }}>
-            <strong>{selectedVariantData?.price || product.price}</strong>
-            {selectedVariantData?.compareAtPrice && (
-              <span className="compare-price">
-                {selectedVariantData.compareAtPrice}
+
+      {/* Product Info */}
+      <CardContent className="p-4 flex flex-col h-full">
+        <div className="flex-1 space-y-3">
+          {/* Vendor */}
+          {product.vendor && (
+            <p className="text-xs text-muted-foreground uppercase tracking-wide">
+              {product.vendor}
+            </p>
+          )}
+
+          {/* Title */}
+          <CardTitle className={cn(
+            "line-clamp-2 group-hover:text-primary transition-colors",
+            compact ? "text-base" : "text-lg"
+          )}>
+            {product.title}
+          </CardTitle>
+          
+          {/* Rating */}
+          <div className="flex items-center gap-1">
+            {Array.from({ length: 5 }, (_, i) => (
+              <Star 
+                key={i} 
+                className={cn(
+                  "h-3 w-3",
+                  i < 4 ? "fill-yellow-400 text-yellow-400" : "text-gray-300"
+                )} 
+              />
+            ))}
+            <span className="text-xs text-muted-foreground ml-1">
+              (4.{Math.floor(Math.random() * 9) + 1})
+            </span>
+          </div>
+
+          {/* Variant Selector */}
+          {product.variants.length > 1 && (
+            <div className="space-y-2">
+              <label className="text-sm font-medium text-gray-700">
+                Variant:
+              </label>
+              <div className="relative">
+                <select
+                  value={selectedVariantId}
+                  onChange={handleVariantChange}
+                  className="w-full px-3 py-2 text-sm border border-gray-300 rounded-md bg-white appearance-none cursor-pointer focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent"
+                >
+                  {product.variants.map((variant) => (
+                    <option key={variant.id} value={variant.id}>
+                      {variant.title} - {formatMoney(variant.price)}
+                    </option>
+                  ))}
+                </select>
+                <ChevronDown className="absolute right-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400 pointer-events-none" />
+              </div>
+            </div>
+          )}
+
+          {/* Price */}
+          <div className="space-y-1">
+            <div className="flex items-center gap-2">
+              <span className={cn(
+                "font-bold text-primary",
+                compact ? "text-lg" : "text-xl"
+              )}>
+                {formatMoney(selectedVariant.price)}
               </span>
+              {selectedVariant.compare_at_price && (
+                <span className="text-sm text-muted-foreground line-through">
+                  {formatMoney(selectedVariant.compare_at_price)}
+                </span>
+              )}
+            </div>
+            {selectedVariant.available && (
+              <Badge variant="secondary" className="bg-green-100 text-green-700 text-xs">
+                In Stock
+              </Badge>
             )}
           </div>
-          {product.priceVaries && product.priceMax && (
-            <small className="price-range">
-              {product.price} - {product.priceMax}
-            </small>
+
+          {/* Tags */}
+          {product.tags.length > 0 && (
+            <div className="flex flex-wrap gap-1">
+              {product.tags.slice(0, 2).map((tag: string) => (
+                <Badge key={tag} variant="outline" className="text-xs">
+                  {tag}
+                </Badge>
+              ))}
+            </div>
+          )}
+
+          {/* Quantity Selector */}
+          {!compact && (
+            <div className="flex items-center gap-3">
+              <span className="text-sm font-medium">Qty:</span>
+              <div className="flex items-center gap-2">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="h-8 w-8 p-0"
+                  onClick={() => handleQuantityChange(-1)}
+                  disabled={quantity <= 1}
+                >
+                  -
+                </Button>
+                <span className="w-8 text-center font-medium">{quantity}</span>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="h-8 w-8 p-0"
+                  onClick={() => handleQuantityChange(1)}
+                >
+                  +
+                </Button>
+              </div>
+            </div>
           )}
         </div>
 
-        {/* Variant selector if multiple variants */}
-        {product.variants && product.variants.length > 1 && (
-          <div className="variant-selector">
-            <label htmlFor={`variant-${product.id}`}>Variante:</label>
-            <select
-              id={`variant-${product.id}`}
-              value={selectedVariant}
-              onChange={(e) => setSelectedVariant(e.target.value)}
-              style={{ borderColor: themeColor }}
-            >
-              {product.variants.map((variant) => (
-                <option 
-                  key={variant.id} 
-                  value={variant.id}
-                  disabled={!variant.available}
-                >
-                  {variant.title} - {variant.price}
-                  {!variant.available && ' (Agotado)'}
-                </option>
-              ))}
-            </select>
-          </div>
-        )}
-        
-        <div className="product-controls">
-          <div className="quantity-selector">
-            <button
-              onClick={() => handleQuantityChange(-1)}
-              className="quantity-btn"
-              style={{ borderColor: themeColor, color: themeColor }}
-              disabled={quantity <= 1 || isAdding}
-            >
-              -
-            </button>
-            <span className="quantity-display">{quantity}</span>
-            <button
-              onClick={() => handleQuantityChange(1)}
-              className="quantity-btn"
-              style={{ borderColor: themeColor, color: themeColor }}
-              disabled={isAdding}
-            >
-              +
-            </button>
-          </div>
-          
-          <button
-            onClick={handleAddToCart}
-            disabled={isAdding || !selectedVariantData?.available}
-            className={`add-to-cart-btn ${animationEnabled ? 'animated' : ''} ${isJustAdded ? 'success' : ''}`}
-            style={{ 
-              backgroundColor: isJustAdded ? '#28a745' : themeColor,
-              opacity: (isAdding || !selectedVariantData?.available) ? 0.7 : 1,
-            }}
-          >
-            {isAdding ? (
-              <>
-                <span className="loading-spinner"></span>
-                Agregando...
-              </>
-            ) : isJustAdded ? (
-              <>
-                ✓ ¡Agregado!
-              </>
-            ) : !selectedVariantData?.available ? (
-              'Agotado'
-            ) : (
-              'Agregar al Carrito'
-            )}
-          </button>
-        </div>
-
-        {/* Error display */}
-        {error && (
-          <div className="error-message" style={{ color: '#dc3545' }}>
-            <small>{error}</small>
-          </div>
-        )}
-
-        {/* Success message */}
-        {isJustAdded && (
-          <div className="success-message" style={{ color: '#28a745' }}>
-            <small>
-              ✓ {quantity} x {product.title} agregado al carrito! 
-              <button 
-                onClick={openCart}
-                className="view-cart-link"
-                style={{ color: '#28a745' }}
-              >
-                Ver carrito
-              </button>
-            </small>
-          </div>
-        )}
-
-        {/* Product meta */}
-        {(product.type || product.tags?.length) && (
-          <div className="product-meta">
-            {product.type && (
-              <span className="product-type" style={{ color: '#6c757d' }}>
-                {product.type}
-              </span>
-            )}
-            {product.tags && product.tags.length > 0 && (
-              <div className="product-tags">
-                {product.tags.slice(0, 3).map((tag, index) => (
-                  <span key={index} className="tag" style={{ borderColor: themeColor }}>
-                    {tag}
-                  </span>
-                ))}
-              </div>
-            )}
-          </div>
-        )}
-      </div>
-    </div>
+        {/* Add to Cart Button */}
+        <Button 
+          className={cn(
+            "w-full mt-4 font-semibold transition-all duration-300",
+            compact ? "h-10" : "h-12",
+            isJustAdded
+              ? "bg-green-600 hover:bg-green-700 text-white"
+              : "bg-primary text-primary-foreground hover:bg-primary/90"
+          )}
+          disabled={isAdding || !selectedVariant.available}
+          onClick={handleAddToCart}
+          style={{ backgroundColor: isJustAdded ? '#16a34a' : themeColor }}
+        >
+          {isAdding && lastAddedItem === selectedVariant.id.toString() ? (
+            <>
+              <div className="h-4 w-4 animate-spin rounded-full border-2 border-current border-t-transparent mr-2" />
+              Adding...
+            </>
+          ) : isJustAdded ? (
+            <>
+              ✓ Added to Cart!
+            </>
+          ) : !selectedVariant.available ? (
+            'Out of Stock'
+          ) : (
+            <>
+              <ShoppingCart className="h-4 w-4 mr-2" />
+              Add to Cart {compact ? '' : `(${quantity})`}
+            </>
+          )}
+        </Button>
+      </CardContent>
+    </Card>
   );
-};
-
-export default ProductCard; 
+}; 
