@@ -3,7 +3,7 @@
 client_id = "9db355888f27c083071def35f3a1c226"
 name = "testing-react-extension"
 handle = "testing-react-extension"
-application_url = "https://submitting-subsidiaries-communications-art.trycloudflare.com"
+application_url = "https://testing-react-extension.fly.dev"
 embedded = true
 
 [build]
@@ -27,13 +27,13 @@ scopes = "write_products,read_products"
 
 [auth]
 redirect_urls = [
-  "https://submitting-subsidiaries-communications-art.trycloudflare.com/auth/callback",
-  "https://submitting-subsidiaries-communications-art.trycloudflare.com/auth/shopify/callback",
-  "https://submitting-subsidiaries-communications-art.trycloudflare.com/api/auth/callback"
+  "https://testing-react-extension.fly.dev/auth/callback",
+  "https://testing-react-extension.fly.dev/auth/shopify/callback",
+  "https://testing-react-extension.fly.dev/api/auth/callback"
 ]
 
 [app_proxy]
-url = "https://submitting-subsidiaries-communications-art.trycloudflare.com/api/proxy"
+url = "https://testing-react-extension.fly.dev/api/proxy"
 subpath = "recommendations"
 prefix = "apps"
 

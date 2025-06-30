@@ -153,7 +153,7 @@ export class SmartCartDetector {
       const themeMeta = document.querySelector('meta[name="theme-name"]')?.getAttribute('content');
       if (themeMeta) {
         this.currentTheme = themeMeta.toLowerCase();
-        console.log('🎨 Tema detectado via meta:', this.currentTheme);
+        console.log('🎨 Theme detected via meta:', this.currentTheme);
         return this.currentTheme;
       }
 
@@ -164,7 +164,7 @@ export class SmartCartDetector {
         for (const theme of Object.keys(this.THEME_SELECTORS)) {
           if (href.toLowerCase().includes(theme.toLowerCase())) {
             this.currentTheme = theme.toLowerCase();
-            console.log('🎨 Tema detectado via CSS:', this.currentTheme);
+            console.log('🎨 Theme detected via CSS:', this.currentTheme);
             return this.currentTheme;
           }
         }
@@ -175,7 +175,7 @@ export class SmartCartDetector {
       for (const theme of Object.keys(this.THEME_SELECTORS)) {
         if (bodyClasses.includes(theme.toLowerCase())) {
           this.currentTheme = theme.toLowerCase();
-          console.log('🎨 Tema detectado via clases:', this.currentTheme);
+          console.log('🎨 Theme detected via classes:', this.currentTheme);
           return this.currentTheme;
         }
       }
@@ -183,15 +183,15 @@ export class SmartCartDetector {
       // 4. Detectar por estructura común de Dawn (tema más popular)
       if (document.querySelector('.header__icon--cart') || document.querySelector('#cart-icon-bubble')) {
         this.currentTheme = 'dawn';
-        console.log('🎨 Tema detectado como Dawn por estructura');
+        console.log('🎨 Theme detected as Dawn by structure');
         return this.currentTheme;
       }
 
     } catch (error) {
-      console.warn('⚠️ Error detectando tema:', error);
+      console.warn('⚠️ Error detecting theme:', error);
     }
 
-    console.log('🎨 No se pudo detectar tema específico, usando detección universal');
+    console.log('🎨 Could not detect specific theme, using universal detection');
     return null;
   }
 
@@ -234,7 +234,7 @@ export class SmartCartDetector {
       
       if (hasCartText && this.isLikelyCartElement(element)) {
         cartElements.push(element);
-        console.log('✅ Elemento encontrado por contenido:', text.trim(), element);
+        console.log('✅ Element found by content:', text.trim(), element);
       }
     });
     
@@ -309,12 +309,12 @@ export class SmartCartDetector {
   static detectAllCartElements(): HTMLElement[] {
     const allElements = new Set<HTMLElement>();
     
-    console.log('🔍 Iniciando detección inteligente de elementos de carrito...');
+    console.log('🔍 Starting smart cart elements detection...');
     
     // 1. Detectar tema y usar selectores específicos
     const theme = this.detectTheme();
     if (theme && theme in this.THEME_SELECTORS) {
-      console.log(`🎯 Usando selectores específicos para tema: ${theme}`);
+      console.log(`🎯 Using specific selectors for theme: ${theme}`);
       const themeSelectors = this.THEME_SELECTORS[theme as keyof typeof this.THEME_SELECTORS];
       themeSelectors.forEach((selector: string) => {
         try {
@@ -323,7 +323,7 @@ export class SmartCartDetector {
             const element = el as HTMLElement;
             if (this.isLikelyCartElement(element)) {
               allElements.add(element);
-              console.log(`✅ Encontrado (tema ${theme}):`, selector, element);
+              console.log(`✅ Found (theme ${theme}):`, selector, element);
             }
           });
         } catch (e) {
@@ -333,7 +333,7 @@ export class SmartCartDetector {
     }
 
     // 2. Usar selectores universales
-    console.log('🌐 Aplicando selectores universales...');
+          console.log('🌐 Applying universal selectors...');
     this.UNIVERSAL_SELECTORS.forEach(selector => {
       try {
         const elements = document.querySelectorAll(selector);
@@ -341,7 +341,7 @@ export class SmartCartDetector {
           const element = el as HTMLElement;
           if (this.isLikelyCartElement(element)) {
             allElements.add(element);
-            console.log('✅ Encontrado (universal):', selector, element);
+            console.log('✅ Found (universal):', selector, element);
           }
         });
       } catch (e) {
@@ -350,7 +350,7 @@ export class SmartCartDetector {
     });
 
     // 3. Buscar por contenido
-    console.log('📝 Analizando contenido textual...');
+          console.log('📝 Analyzing textual content...');
     const contentElements = this.findByContent();
     contentElements.forEach(el => allElements.add(el));
 
@@ -362,7 +362,7 @@ export class SmartCartDetector {
     });
 
     this.detectedElements = new Set(validElements);
-    console.log(`🎯 Total de elementos de carrito detectados: ${validElements.length}`);
+    console.log(`🎯 Total cart elements detected: ${validElements.length}`);
     
     return validElements;
   }
@@ -404,14 +404,14 @@ export class SmartCartDetector {
    */
   static overrideCartElements(onCartOpen: (e: Event) => void): void {
     if (this.isActive) {
-      console.log('⚠️ Smart detector ya está activo, saltando inicialización');
+      console.log('⚠️ Smart detector already active, skipping initialization');
       return;
     }
 
     const cartElements = this.detectAllCartElements();
     
     if (cartElements.length === 0) {
-      console.log('⚠️ No se encontraron elementos de carrito para interceptar');
+      console.log('⚠️ No cart elements found to intercept');
       return;
     }
     
@@ -468,7 +468,7 @@ export class SmartCartDetector {
       this.overriddenElements.push(element);
     });
 
-    console.log(`🎯 Smart detector activo con ${cartElements.length} elementos`);
+            console.log(`🎯 Smart detector active with ${cartElements.length} elements`);
   }
 
   /**
@@ -494,7 +494,7 @@ export class SmartCartDetector {
     this.overriddenElements = [];
     this.detectedElements.clear();
     
-    console.log('🧹 Smart detector limpiado');
+          console.log('🧹 Smart detector cleaned up');
   }
 
   /**
@@ -505,11 +505,11 @@ export class SmartCartDetector {
     
     // Just mark as inactive, don't cleanup completely
     this.isActive = false;
-    console.log(`⏸️ Smart detector desactivado por ${duration}ms`);
+          console.log(`⏸️ Smart detector disabled for ${duration}ms`);
     
     setTimeout(() => {
       this.isActive = true;
-      console.log('🔄 Smart detector reactivado');
+              console.log('🔄 Smart detector reactivated');
     }, duration);
   }
 

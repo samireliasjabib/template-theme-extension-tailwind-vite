@@ -1,0 +1,38 @@
+# fly.toml app configuration file generated for testing-react-extension on 2025-06-30T08:37:38-05:00
+#
+# See https://fly.io/docs/reference/configuration/ for information about how to use this file.
+#
+
+app = 'testing-react-extension'
+primary_region = 'mia'
+
+[build]
+
+[env]
+  PORT = '3000'
+  SCOPES = 'read_products,write_products'
+  SHOPIFY_API_KEY = '9db355888f27c083071def35f3a1c226'
+  SHOPIFY_APP_URL = 'https://testing-react-extension.fly.dev'
+
+[processes]
+  app = 'node ./dbsetup.js npm run docker-start'
+
+[[mounts]]
+  source = 'data'
+  destination = '/data'
+  auto_extend_size_threshold = 80
+  auto_extend_size_increment = '1GB'
+  auto_extend_size_limit = '10GB'
+
+[http_service]
+  internal_port = 3000
+  force_https = true
+  auto_stop_machines = 'stop'
+  auto_start_machines = true
+  min_machines_running = 0
+  processes = ['app']
+
+[[vm]]
+  memory = '1gb'
+  cpu_kind = 'shared'
+  cpus = 1

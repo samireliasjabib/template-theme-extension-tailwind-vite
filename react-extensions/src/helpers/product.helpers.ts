@@ -29,13 +29,7 @@ export function getProductImage(
                    product.featured_image?.src || 
                    product.images?.[0]?.src;
   
-  console.log('🖼️ Image URL debug:', {
-    variantImage: variant?.featured_image?.src,
-    featuredImage: product.featured_image?.src,
-    firstImage: product.images?.[0]?.src,
-    selectedUrl: imageUrl,
-    productTitle: product.title
-  });
+
   
   if (!imageUrl) {
     return `https://via.placeholder.com/${size}?text=No+Image`;
