@@ -140,7 +140,7 @@ export default function Index() {
               </InlineStack>
               
               <InlineStack gap="400" blockAlign="center">
-                <Text variant="bodyMd" tone="subdued">
+                <Text as="span" variant="bodyMd" tone="subdued">
                   Last updated: Today, 2:45 PM
                 </Text>
                 <Box minWidth="150px">
@@ -192,7 +192,7 @@ export default function Index() {
                 </InlineStack>
               </Box>
               
-              <Box background="bg-surface-info-subdued" padding="400" borderRadius="300" minWidth="200px">
+              <Box  padding="400" borderRadius="300" minWidth="200px">
                 <InlineStack gap="300" blockAlign="center">
                   <BlockStack gap="100" align="center">
                     <Text as="span" variant="bodyLg" fontWeight="semibold" tone="base">
@@ -206,7 +206,7 @@ export default function Index() {
                 </InlineStack>
               </Box>
               
-              <Box background="bg-surface-warning-subdued" padding="400" borderRadius="300" minWidth="200px">
+              <Box  padding="400" borderRadius="300" minWidth="200px">
                 <InlineStack gap="300" blockAlign="center">
                   <BlockStack gap="100" align="center">
                     <Text as="span" variant="bodyLg" fontWeight="semibold" tone="base">
