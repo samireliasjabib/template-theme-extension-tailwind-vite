@@ -5,14 +5,12 @@ generator client {
   provider = "prisma-client-js"
 }
 
-// Note that some adapters may set a maximum length for the String type by default, please ensure your strings are long
-// enough when changing adapters.
-// See https://www.prisma.io/docs/orm/reference/prisma-schema-reference#string for more information
 datasource db {
   provider = "sqlite"
   url      = "file:dev.sqlite"
 }
 
+// Existing Session model for Shopify authentication
 model Session {
   id            String    @id
   shop          String
@@ -29,4 +27,202 @@ model Session {
   locale        String?
   collaborator  Boolean?  @default(false)
   emailVerified Boolean?  @default(false)
+}
+
+// Store/Shop management
+model Store {
+  id          String   @id @default(cuid())
+  shopifyDomain String  @unique
+  name        String
+  email       String?
+  currency    String   @default("USD")
+  timezone    String   @default("UTC")
+  
+  // Cart drawer configuration
+  cartDrawerEnabled Boolean @default(true)
+  cartDrawerConfig  String?   // JSON string for cart drawer settings
+  
+  lastActiveAt DateTime?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  
+  // Relations
+  subscription Subscription?
+  cartDrawers   CartDrawer[]
+  cartSessions  CartSession[]
+  cartEvents    CartEvent[]
+  fpGrowthPatterns FPGrowthPattern[]
+  discountRules DiscountRule[]
+  analyticsSummaries AnalyticsSummary[]
+  
+  @@index([shopifyDomain])
+  @@index([lastActiveAt])
+}
+
+// Subscription management
+model Subscription {
+  id          String   @id @default(cuid())
+  storeId     String   @unique
+  planName    String   @default("BASIC") // BASIC, PRO, ENTERPRISE
+  status      String   @default("TRIAL") // TRIAL, ACTIVE, CANCELLED, PAST_DUE
+  billingCycle String  @default("MONTHLY") // MONTHLY, ANNUAL
+  trialEndsAt DateTime?
+  currentPeriodEnd DateTime
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  
+  // Relations
+  store       Store    @relation(fields: [storeId], references: [id], onDelete: Cascade)
+  
+  @@index([status])
+  @@index([currentPeriodEnd])
+}
+
+// Cart Drawer configurations for A/B testing
+model CartDrawer {
+  id          String   @id @default(cuid())
+  storeId     String
+  name        String
+  version     String   // A, B, C, etc.
+  isActive    Boolean  @default(false)
+  trafficPercentage Int @default(100) // For A/B testing (0-100)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  
+  // Relations
+  store       Store    @relation(fields: [storeId], references: [id], onDelete: Cascade)
+  features    CartDrawerFeature[]
+  cartSessions CartSession[]
+  
+  @@index([storeId, isActive])
+  @@index([storeId, version])
+}
+
+// Features available in cart drawer
+model CartDrawerFeature {
+  id          String   @id @default(cuid())
+  cartDrawerId String
+  featureType String   @default("RECOMMENDATIONS") // RECOMMENDATIONS, DISCOUNTS, FREE_SHIPPING, UPSELLS, COUNTDOWN_TIMER, SOCIAL_PROOF, RECENTLY_VIEWED
+  isEnabled   Boolean  @default(true)
+  config      String   // JSON string configuration
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  
+  // Relations
+  cartDrawer  CartDrawer @relation(fields: [cartDrawerId], references: [id], onDelete: Cascade)
+  
+  @@index([cartDrawerId, featureType])
+}
+
+// Cart sessions for analytics
+model CartSession {
+  id          String   @id @default(cuid())
+  storeId     String
+  cartDrawerId String
+  sessionId   String   // Shopify session ID
+  customerId  String?  // Shopify customer ID
+  startedAt   DateTime @default(now())
+  endedAt     DateTime?
+  totalTime   Int?     // Time in seconds
+  cartValue   Float    @default(0)
+  itemsCount  Int      @default(0)
+  converted   Boolean  @default(false)
+  orderId     String?  // If converted
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  
+  // Relations
+  store       Store    @relation(fields: [storeId], references: [id], onDelete: Cascade)
+  cartDrawer  CartDrawer @relation(fields: [cartDrawerId], references: [id])
+  events      CartEvent[]
+  
+  @@index([storeId, startedAt])
+  @@index([sessionId])
+  @@index([customerId])
+  @@index([storeId, converted])
+}
+
+// Cart events for detailed analytics
+model CartEvent {
+  id          String   @id @default(cuid())
+  storeId     String
+  cartSessionId String
+  eventType   String   @default("ADD_ITEM") // ADD_ITEM, REMOVE_ITEM, UPDATE_QUANTITY, VIEW_CART, CHECKOUT_START, CHECKOUT_COMPLETE, APPLY_DISCOUNT, REMOVE_DISCOUNT, VIEW_RECOMMENDATIONS, CLICK_RECOMMENDATION
+  productId   String?  // Shopify product ID
+  variantId   String?  // Shopify variant ID
+  quantity    Int?
+  price       Float?
+  metadata    String?  // JSON string additional data
+  timestamp   DateTime @default(now())
+  
+  // Relations
+  store       Store    @relation(fields: [storeId], references: [id], onDelete: Cascade)
+  cartSession CartSession @relation(fields: [cartSessionId], references: [id], onDelete: Cascade)
+  
+  @@index([storeId, timestamp])
+  @@index([cartSessionId, eventType])
+  @@index([productId])
+  @@index([storeId, eventType, timestamp])
+}
+
+// Discount rules
+model DiscountRule {
+  id          String   @id @default(cuid())
+  storeId     String
+  name        String
+  type        String   @default("PERCENTAGE") // PERCENTAGE, FIXED_AMOUNT, FREE_SHIPPING
+  value       Float
+  minQuantity Int?
+  minAmount   Float?
+  maxUses     Int?     // Usage limit
+  usedCount   Int      @default(0)
+  isActive    Boolean  @default(true)
+  startsAt    DateTime?
+  endsAt      DateTime?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  
+  // Relations
+  store       Store    @relation(fields: [storeId], references: [id], onDelete: Cascade)
+  
+  @@index([storeId, isActive])
+  @@index([storeId, type])
+  @@index([startsAt, endsAt])
+}
+
+// FP Growth algorithm patterns (only algorithm stored in DB)
+model FPGrowthPattern {
+  id          String   @id @default(cuid())
+  storeId     String
+  items       String   // JSON string array of Shopify product IDs
+  support     Float    // Support count
+  confidence  Float    // Confidence score
+  lift        Float    // Lift score
+  isActive    Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  
+  // Relations
+  store       Store    @relation(fields: [storeId], references: [id], onDelete: Cascade)
+  
+  @@index([storeId, support])
+  @@index([storeId, confidence])
+  @@index([storeId, isActive])
+}
+
+// Analytics summary for performance
+model AnalyticsSummary {
+  id          String   @id @default(cuid())
+  storeId     String
+  date        DateTime
+  metric      String   // conversion_rate, avg_cart_value, avg_time_in_cart, etc.
+  value       Float
+  createdAt   DateTime @default(now())
+  
+  // Relations
+  store       Store    @relation(fields: [storeId], references: [id], onDelete: Cascade)
+  
+  @@unique([storeId, date, metric])
+  @@index([storeId, date])
+  @@index([storeId, metric])
 }

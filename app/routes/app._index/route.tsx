@@ -20,6 +20,7 @@ import {
 } from "@shopify/polaris-icons";
 import { TitleBar, useAppBridge } from "@shopify/app-bridge-react";
 import { authenticate } from "../../shopify.server";
+import RecommendedFeaturesSlider from "../../components/RecommendedFeaturesSlider";
 
 export const loader = async ({ request }: LoaderFunctionArgs) => {
   await authenticate.admin(request);
@@ -125,16 +126,16 @@ export default function Index() {
 
   return (
     <Page>
-      <TitleBar title="BundleAI Dashboard" />
+      <TitleBar title="Cart Drawer Analytics" />
       <BlockStack gap="500">
-        {/* Monthly Bundle Impact - Enhanced with Plan and Filter */}
+        {/* Cart Drawer Performance */}
         <Card>
           <BlockStack gap="500">
-            {/* Header with Title, Plan, and Filter */}
+            {/* Header */}
             <InlineStack align="space-between" blockAlign="center">
               <InlineStack gap="400" blockAlign="center">
                 <Text as="h2" variant="headingLg">
-                  Monthly Bundle Impact
+                  Cart Drawer Performance
                 </Text>
                 <Badge tone="info" size="large">Pro Plan</Badge>
               </InlineStack>
@@ -158,10 +159,10 @@ export default function Index() {
             <InlineStack gap="600" align="space-between" blockAlign="center">
               <BlockStack gap="200">
                 <Text as="p" variant="heading3xl" tone="base">
-                  $2,340
+                  $8,420
                 </Text>
                 <Text as="p" variant="bodyLg" tone="subdued">
-                  Extra revenue this month
+                  Revenue from cart drawer this month
                 </Text>
               </BlockStack>
               
@@ -171,52 +172,52 @@ export default function Index() {
                 borderRadius="300"
               >
                 <Text as="span" variant="bodyMd" fontWeight="semibold" tone="success">
-                  +$12 Each order on average
+                  68% conversion rate
                 </Text>
               </Box>
             </InlineStack>
 
-            {/* Quick Stats - ROI, AOV, Cost Plan */}
+            {/* Quick Stats - Cart-specific metrics */}
             <InlineStack gap="600" align="start">
               <Box background="bg-surface-success-subdued" padding="400" borderRadius="300" minWidth="200px">
                 <InlineStack gap="300" blockAlign="center">
                   <BlockStack gap="100" align="center">
                     <Text as="span" variant="bodyLg" fontWeight="semibold" tone="base">
-                      5,900%
+                      2.4 min
                     </Text>
                     <Text as="span" variant="bodySm" tone="subdued">
-                      ROI
+                      Avg. Time in Cart
                     </Text>
                   </BlockStack>
-                  <Badge tone="success" size="small">↗ High</Badge>
+                  <Badge tone="success" size="small">↗ Fast</Badge>
                 </InlineStack>
               </Box>
               
-              <Box  padding="400" borderRadius="300" minWidth="200px">
+              <Box padding="400" borderRadius="300" minWidth="200px">
                 <InlineStack gap="300" blockAlign="center">
                   <BlockStack gap="100" align="center">
                     <Text as="span" variant="bodyLg" fontWeight="semibold" tone="base">
-                      +18%
+                      +23%
                     </Text>
                     <Text as="span" variant="bodySm" tone="subdued">
-                      AOV Increase
+                      Cart Abandonment ↓
                     </Text>
                   </BlockStack>
-                  <Badge tone="success" size="small">↗ +18%</Badge>
+                  <Badge tone="success" size="small">↗ +23%</Badge>
                 </InlineStack>
               </Box>
               
-              <Box  padding="400" borderRadius="300" minWidth="200px">
+              <Box padding="400" borderRadius="300" minWidth="200px">
                 <InlineStack gap="300" blockAlign="center">
                   <BlockStack gap="100" align="center">
                     <Text as="span" variant="bodyLg" fontWeight="semibold" tone="base">
-                      $39
+                      3.2
                     </Text>
                     <Text as="span" variant="bodySm" tone="subdued">
-                      Cost Plan
+                      Items per Cart
                     </Text>
                   </BlockStack>
-                  <Badge tone="attention" size="small">+2%</Badge>
+                  <Badge tone="attention" size="small">+0.4</Badge>
                 </InlineStack>
               </Box>
             </InlineStack>
@@ -226,26 +227,23 @@ export default function Index() {
         {/* Bottom Section - Cards Grid */}
         <Layout>
           <Layout.Section>
-            {/* Activity Log */}
+            {/* Cart Activity Log */}
             <Card>
               <BlockStack gap="400">
                 <InlineStack align="space-between" blockAlign="center">
                   <Text as="h2" variant="headingLg">
-                    Activity Log
+                    Cart Activity
                   </Text>
                   <Badge tone="success">Live</Badge>
                 </InlineStack>
                 
                 <BlockStack gap="300">
-                  {/* Activity Item 1 */}
-                  <Box
-                    padding="300"
-                    borderRadius="200"
-                  >
+                  {/* Cart Activity Item 1 */}
+                  <Box padding="300" borderRadius="200">
                     <InlineStack align="space-between" blockAlign="center">
                       <InlineStack gap="300" blockAlign="center">
                         <Box 
-                          background="bg-surface-success"
+                          background="bg-surface-base"
                           padding="100"
                           borderRadius="100"
                           minWidth="8px"
@@ -253,26 +251,23 @@ export default function Index() {
                         />
                         <BlockStack gap="100">
                           <Text as="span" variant="bodyMd" fontWeight="medium">
-                            iPhone 15 Pro Max bought from IA bundle generated on iPhone 15 Case
+                            iPhone 15 Pro Max added
                           </Text>
                           <Text as="span" variant="bodySm" tone="subdued">
-                            +24% added to total order ($89.50 extra)
+                            Cart value: $1,199.00 (3 items) - Item: $999.00
                           </Text>
                         </BlockStack>
                       </InlineStack>
-                      <Text variant="bodySm" tone="subdued">2 min ago</Text>
+                      <Text variant="bodySm" tone="subdued">2:45 PM</Text>
                     </InlineStack>
                   </Box>
 
-                  {/* Activity Item 2 */}
-                  <Box
-                    padding="300"
-                    borderRadius="200"
-                  >
+                  {/* Cart Activity Item 2 */}
+                  <Box padding="300" borderRadius="200">
                     <InlineStack align="space-between" blockAlign="center">
                       <InlineStack gap="300" blockAlign="center">
                         <Box 
-                          background="bg-surface-success"
+                          background="bg-surface-base"
                           padding="100"
                           borderRadius="100"
                           minWidth="8px"
@@ -280,26 +275,23 @@ export default function Index() {
                         />
                         <BlockStack gap="100">
                           <Text as="span" variant="bodyMd" fontWeight="medium">
-                            MacBook Air M2 bought from IA bundle generated on Magic Mouse
+                            MacBook Air M2 added
                           </Text>
                           <Text as="span" variant="bodySm" tone="subdued">
-                            +18% added to total order ($156.20 extra)
+                            Cart value: $1,655.00 (4 items) - Item: $456.00
                           </Text>
                         </BlockStack>
                       </InlineStack>
-                      <Text as="span" variant="bodySm" tone="subdued">8 min ago</Text>
+                      <Text as="span" variant="bodySm" tone="subdued">2:38 PM</Text>
                     </InlineStack>
                   </Box>
 
-                  {/* Activity Item 3 */}
-                  <Box
-                    padding="300"
-                    borderRadius="200"
-                  >
+                  {/* Cart Activity Item 3 */}
+                  <Box padding="300" borderRadius="200">
                     <InlineStack align="space-between" blockAlign="center">
                       <InlineStack gap="300" blockAlign="center">
                         <Box 
-                          background="bg-surface-success"
+                          background="bg-surface-base"
                           padding="100"
                           borderRadius="100"
                           minWidth="8px"
@@ -307,26 +299,23 @@ export default function Index() {
                         />
                         <BlockStack gap="100">
                           <Text as="span" variant="bodyMd" fontWeight="medium">
-                            AirPods Pro bought from IA bundle generated on iPhone 14 Pro
+                            AirPods Pro removed
                           </Text>
                           <Text as="span" variant="bodySm" tone="subdued">
-                            +31% added to total order ($45.75 extra)
+                            Cart value: $1,210.00 (3 items) - Item: -$245.00
                           </Text>
                         </BlockStack>
                       </InlineStack>
-                      <Text variant="bodySm" tone="subdued">15 min ago</Text>
+                      <Text variant="bodySm" tone="subdued">2:31 PM</Text>
                     </InlineStack>
                   </Box>
 
-                  {/* Activity Item 4 */}
-                  <Box
-                    padding="300"
-                    borderRadius="200"
-                  >
+                  {/* Cart Activity Item 4 */}
+                  <Box padding="300" borderRadius="200">
                     <InlineStack align="space-between" blockAlign="center">
                       <InlineStack gap="300" blockAlign="center">
                         <Box 
-                          background="bg-surface-success"
+                          background="bg-surface-base"
                           padding="100"
                           borderRadius="100"
                           minWidth="8px"
@@ -334,26 +323,23 @@ export default function Index() {
                         />
                         <BlockStack gap="100">
                           <Text as="span" variant="bodyMd" fontWeight="medium">
-                            Nike Air Jordan bought from IA bundle generated on Nike Socks Pack
+                            iPhone case added
                           </Text>
                           <Text as="span" variant="bodySm" tone="subdued">
-                            +22% added to total order ($67.80 extra)
+                            Cart value: $1,255.00 (4 items) - Item: $45.00
                           </Text>
                         </BlockStack>
                       </InlineStack>
-                      <Text variant="bodySm" tone="subdued">28 min ago</Text>
+                      <Text variant="bodySm" tone="subdued">2:18 PM</Text>
                     </InlineStack>
                   </Box>
 
-                  {/* Activity Item 5 */}
-                  <Box
-                    padding="300"
-                    borderRadius="200"
-                  >
+                  {/* Cart Activity Item 5 */}
+                  <Box padding="300" borderRadius="200">
                     <InlineStack align="space-between" blockAlign="center">
                       <InlineStack gap="300" blockAlign="center">
                         <Box 
-                          background="bg-surface-success"
+                          background="bg-surface-base"
                           padding="100"
                           borderRadius="100"
                           minWidth="8px"
@@ -361,20 +347,20 @@ export default function Index() {
                         />
                         <BlockStack gap="100">
                           <Text as="span" variant="bodyMd" fontWeight="medium">
-                            Samsung Galaxy S24 bought from IA bundle generated on Galaxy Watch 6
+                            Samsung Galaxy S24 added
                           </Text>
                           <Text as="span" variant="bodySm" tone="subdued">
-                            +19% added to total order ($123.40 extra)
+                            Cart value: $1,299.00 (2 items) - Item: $1,199.00
                           </Text>
                         </BlockStack>
                       </InlineStack>
-                      <Text variant="bodySm" tone="subdued">1 hour ago</Text>
+                      <Text variant="bodySm" tone="subdued">1:45 PM</Text>
                     </InlineStack>
                   </Box>
 
                   {/* View All Button */}
                   <Button variant="plain" fullWidth>
-                    View All Activity
+                    View All Cart Activity
                   </Button>
                 </BlockStack>
               </BlockStack>
@@ -383,7 +369,7 @@ export default function Index() {
 
           <Layout.Section variant="oneThird">
             <BlockStack gap="400">
-              {/* White Globe Installation */}
+              {/* Cart Drawer Settings */}
               <Card>
                 <Box background="bg-surface-brand-subdued" padding="400" borderRadius="300">
                   <BlockStack gap="400">
@@ -392,28 +378,28 @@ export default function Index() {
                         <Icon source={GlobeIcon} tone="base" />
                       </Box>
                       <Text as="h3" variant="headingMd">
-                        White Globe Installation
+                        Cart Drawer Settings
                       </Text>
                     </InlineStack>
                     
                     <Text as="p" variant="bodyMd" tone="subdued">
-                      Get our premium analytics solution installed on your store for advanced revenue tracking and insights.
+                      Configure cart drawer appearance, behavior, and optimization settings.
                     </Text>
                     
                     <BlockStack gap="300">
                       <Button fullWidth variant="primary">
-                        Installation Assistant
+                        Customize Drawer
                       </Button>
                       
                       <Button fullWidth variant="secondary">
-                        Manual Installation
+                        A/B Testing
                       </Button>
                     </BlockStack>
                   </BlockStack>
                 </Box>
               </Card>
 
-              {/* Bundle Rules */}
+              {/* Cart Analytics */}
               <Card>
                 <Box background="bg-surface-success-subdued" padding="400" borderRadius="300">
                   <BlockStack gap="400">
@@ -422,21 +408,21 @@ export default function Index() {
                         <Icon source={ChartVerticalIcon} tone="success" />
                       </Box>
                       <Text as="h3" variant="headingMd">
-                        Bundle Rules
+                        Cart Analytics
                       </Text>
                     </InlineStack>
                     
                     <Text as="p" variant="bodyMd" tone="subdued">
-                      Configure bundle logic, discount rules, and automated optimization settings.
+                      Monitor cart performance, conversion rates, and user behavior patterns.
                     </Text>
                     
                     <InlineStack gap="200">
                       <Badge tone="success">Active</Badge>
-                      <Badge>Auto-optimize</Badge>
+                      <Badge>Real-time</Badge>
                     </InlineStack>
                     
                     <Button fullWidth>
-                      Configure Rules
+                      View Analytics
                     </Button>
                   </BlockStack>
                 </Box>
@@ -444,6 +430,8 @@ export default function Index() {
             </BlockStack>
           </Layout.Section>
         </Layout>
+        
+        {/* Removed RecommendedFeaturesSlider */}
       </BlockStack>
     </Page>
   );
