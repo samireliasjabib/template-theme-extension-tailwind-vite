@@ -20,6 +20,18 @@ const shopify = shopifyApp({
     unstable_newEmbeddedAuthStrategy: true,
     removeRest: true,
   },
+  hooks: {
+    afterAuth: async ({ session }) => {
+      console.log("afterAuth", session);
+      const { shop, accessToken, scope} = session
+
+       //register user in the database. 
+
+        
+
+
+    },
+  },
   ...(process.env.SHOP_CUSTOM_DOMAIN
     ? { customShopDomains: [process.env.SHOP_CUSTOM_DOMAIN] }
     : {}),

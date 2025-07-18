@@ -48,6 +48,8 @@ model Store {
   
   // Relations
   subscription Subscription?
+  installationStatus InstallationStatus?
+  onboardingBanners OnboardingBanner[]
   cartDrawers   CartDrawer[]
   cartSessions  CartSession[]
   cartEvents    CartEvent[]
@@ -76,6 +78,46 @@ model Subscription {
   
   @@index([status])
   @@index([currentPeriodEnd])
+}
+
+// Installation status tracking
+model InstallationStatus {
+  id          String   @id @default(cuid())
+  storeId     String   @unique
+  status      String   @default("NOT_INSTALLED") // NOT_INSTALLED, INSTALLING, INSTALLED, UNINSTALLED, ERROR
+  progress    Int      @default(0) // 0-100 percentage
+  errorMessage String? // If installation failed
+  installedAt DateTime?
+  uninstalledAt DateTime?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  
+  // Relations
+  store       Store    @relation(fields: [storeId], references: [id], onDelete: Cascade)
+  
+  @@index([status])
+  @@index([installedAt])
+}
+
+// Onboarding banners and CTAs
+model OnboardingBanner {
+  id          String   @id @default(cuid())
+  storeId     String?
+  title       String
+  message     String
+  type        String   @default("INFO") // INFO, WARNING, SUCCESS, ERROR, INSTALLATION, BOOK_CALL, WHITE_GLOBE
+  isActive    Boolean  @default(true)
+  isDismissible Boolean @default(true)
+  actionText  String?  // Button text
+  actionUrl   String?  // Button URL
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  
+  // Relations
+  store       Store?   @relation(fields: [storeId], references: [id], onDelete: Cascade)
+  
+  @@index([storeId, isActive])
+  @@index([type])
 }
 
 // Cart Drawer configurations for A/B testing

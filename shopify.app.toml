@@ -3,7 +3,7 @@
 client_id = "9db355888f27c083071def35f3a1c226"
 name = "testing-react-extension"
 handle = "testing-react-extension"
-application_url = "https://advocate-deutsch-custody-younger.trycloudflare.com"
+application_url = "https://linking-acm-qld-too.trycloudflare.com"
 embedded = true
 
 [build]
@@ -26,10 +26,10 @@ api_version = "2025-04"
 scopes = "write_products,read_products"
 
 [auth]
-redirect_urls = ["https://advocate-deutsch-custody-younger.trycloudflare.com/auth/callback", "https://advocate-deutsch-custody-younger.trycloudflare.com/auth/shopify/callback", "https://advocate-deutsch-custody-younger.trycloudflare.com/api/auth/callback"]
+redirect_urls = ["https://linking-acm-qld-too.trycloudflare.com/auth/callback", "https://linking-acm-qld-too.trycloudflare.com/auth/shopify/callback", "https://linking-acm-qld-too.trycloudflare.com/api/auth/callback"]
 
 [app_proxy]
-url = "https://advocate-deutsch-custody-younger.trycloudflare.com/api/proxy"
+url = "https://linking-acm-qld-too.trycloudflare.com/api/proxy"
 subpath = "recommendations"
 prefix = "apps"
 
