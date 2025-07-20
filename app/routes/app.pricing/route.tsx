@@ -1,5 +1,5 @@
 import { LoaderFunctionArgs } from "@remix-run/node";
-import { authenticate } from "app/shopify.server";
+import { authenticate } from "app/server/shopify.server";
 import {
   Page,
   Layout,

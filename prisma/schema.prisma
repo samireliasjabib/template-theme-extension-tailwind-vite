@@ -42,6 +42,13 @@ model Store {
   cartDrawerEnabled Boolean @default(true)
   cartDrawerConfig  String?   // JSON string for cart drawer settings
   
+  // Onboarding tracking
+  isFirstInstall Boolean @default(true)
+  onboardingCompleted Boolean @default(false)
+  onboardingSteps String? // JSON array of completed step IDs
+  currentOnboardingStep String? // Current step the user is on
+  reinstalledAt DateTime? // When the app was reinstalled
+  
   lastActiveAt DateTime?
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
@@ -56,9 +63,12 @@ model Store {
   fpGrowthPatterns FPGrowthPattern[]
   discountRules DiscountRule[]
   analyticsSummaries AnalyticsSummary[]
+  dashboardConfigSteps DashboardConfigStep[]
   
   @@index([shopifyDomain])
   @@index([lastActiveAt])
+  @@index([isFirstInstall])
+  @@index([onboardingCompleted])
 }
 
 // Subscription management
@@ -267,4 +277,27 @@ model AnalyticsSummary {
   @@unique([storeId, date, metric])
   @@index([storeId, date])
   @@index([storeId, metric])
+}
+
+// Dashboard configuration steps for app setup
+model DashboardConfigStep {
+  id          String   @id @default(cuid())
+  storeId     String
+  stepType    String   @default("CART_DRAWER_SETUP") // CART_DRAWER_SETUP, THEME_CUSTOMIZATION, PRODUCT_SELECTION, etc.
+  stepTitle   String
+  stepDescription String?
+  isCompleted Boolean  @default(false)
+  completedAt DateTime?
+  actionButtonText String
+  actionUrl String?
+  order       Int      @default(0) // Step order in the flow
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  
+  // Relations
+  store       Store    @relation(fields: [storeId], references: [id], onDelete: Cascade)
+  
+  @@index([storeId, stepType])
+  @@index([storeId, isCompleted])
+  @@index([storeId, order])
 }

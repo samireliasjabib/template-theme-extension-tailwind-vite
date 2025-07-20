@@ -1,5 +1,5 @@
 import { ActionFunctionArgs, LoaderFunctionArgs, json } from "@remix-run/node";
-import { authenticate } from "../../shopify.server";
+import { authenticate } from "../../server/shopify.server";
 import { verifyProxy } from "./helpers";
 
 /**

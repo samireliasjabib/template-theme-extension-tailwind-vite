@@ -6,6 +6,7 @@ import {
 } from "@shopify/shopify-app-remix/server";
 import { PrismaSessionStorage } from "@shopify/shopify-app-session-storage-prisma";
 import prisma from "./db.server";
+import { registerInstallation } from "./installation/installation.service";
 
 const shopify = shopifyApp({
   apiKey: process.env.SHOPIFY_API_KEY,
@@ -22,14 +23,13 @@ const shopify = shopifyApp({
   },
   hooks: {
     afterAuth: async ({ session }) => {
-      console.log("afterAuth", session);
-      const { shop, accessToken, scope} = session
-
-       //register user in the database. 
-
-        
-
-
+      const { store, onboardingInfo } = await registerInstallation(session);
+      
+      console.log(`Store ${store.shopifyDomain} installed.`);
+      console.log(`Onboarding: ${onboardingInfo.message}`);
+      console.log(`Is first install: ${onboardingInfo.isFirstInstall}`);
+      
+      // ... billing / webhook registration comes later ...
     },
   },
   ...(process.env.SHOP_CUSTOM_DOMAIN
