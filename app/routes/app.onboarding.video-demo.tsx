@@ -1,5 +1,5 @@
-import { LoaderFunctionArgs } from "@remix-run/node";
-import { Link } from "@remix-run/react";
+import { ActionFunctionArgs, LoaderFunctionArgs, redirect } from "@remix-run/node";
+import { Form, useActionData } from "@remix-run/react";
 import { authenticate } from "../server/shopify.server";
 import {
   Page,
@@ -11,15 +11,35 @@ import {
   InlineStack,
   Banner,
   Box,
-  MediaCard,
 } from "@shopify/polaris";
 
 export const loader = async ({ request }: LoaderFunctionArgs) => {
+  // Validate that the user is logged in
   await authenticate.admin(request);
   return null;
 };
 
+export const action = async ({ request }: ActionFunctionArgs) => {
+  await authenticate.admin(request);
+
+  const formData = await request.formData();
+  const action = formData.get("action") as string;
+
+  if (action === "continueToDashboard") {
+    // Complete the VIDEO_DEMO onboarding step
+    const { session } = await authenticate.admin(request);
+    // await completeOnboardingStep(session.shop, "VIDEO_DEMO");
+    
+    return redirect("/app");
+  }
+
+  return null;
+};
+
 export default function VideoDemo() {
+
+  
+
   return (
     <Page title="How UpCart Works">
       <Layout>
@@ -111,12 +131,15 @@ export default function VideoDemo() {
                   ← Back to Plans
                 </Button>
                 
-                <Button 
-                  variant="primary" 
-                  url="/app"
-                >
-                  Continue to Dashboard →
-                </Button>
+                <Form method="post">
+                  <input type="hidden" name="action" value="continueToDashboard" />
+                  <Button 
+                    variant="primary" 
+                    submit
+                  >
+                    Continue to Dashboard →
+                  </Button>
+                </Form>
               </InlineStack>
             </Box>
           </BlockStack>
