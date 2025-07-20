@@ -1,5 +1,6 @@
-import { LoaderFunctionArgs, ActionFunctionArgs } from "@remix-run/node";
+import { LoaderFunctionArgs, ActionFunctionArgs, redirect } from "@remix-run/node";
 import { useActionData, useLoaderData } from "@remix-run/react";
+import { useAppBridge } from "@shopify/app-bridge-react";
 import { authenticate } from "../../server/shopify.server";
 import { completeOnboardingStep } from "../../server/installation/installation.service";
 import { upsertSubscription } from "../../server/subscription/subscription.repository";
@@ -7,6 +8,7 @@ import { Layout, BlockStack } from "@shopify/polaris";
 import { PricingHeader, PricingBanner, ActionBanner, PricingGrid } from "./components";
 import { PLANS } from "./constants";
 import type { ActionData, LoaderData } from "./types";
+import { useEffect } from "react";
 
 export const loader = async ({ request }: LoaderFunctionArgs) => {
   await authenticate.admin(request);
@@ -18,7 +20,7 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
 };
 
 export const action = async ({ request }: ActionFunctionArgs) => {
-  const { session } = await authenticate.admin(request);
+  const { session, redirect: redirectShopify } = await authenticate.admin(request);
   const formData = await request.formData();
   const selectedPlan = formData.get("plan") as string;
   
@@ -41,11 +43,8 @@ export const action = async ({ request }: ActionFunctionArgs) => {
 
     console.log(`✅ Plan ${selectedPlan} selected for ${session.shop}`);
     
-    return { 
-      success: true, 
-      message: `${selectedPlan} plan selected successfully!`,
-      redirectTo: "/app/onboarding/video-demo"
-    };
+    // Use Remix redirect instead of client-side redirect
+    return redirectShopify("/app/onboarding/video-demo");
   } catch (error) {
     console.error("Error selecting plan:", error);
     return { 
@@ -58,6 +57,13 @@ export const action = async ({ request }: ActionFunctionArgs) => {
 export default function Pricing() {
   const { isOnboarding } = useLoaderData<LoaderData>();
   const actionData = useActionData<ActionData>();
+  const shopify = useAppBridge();
+
+  useEffect(() => {
+    if (actionData?.success) {
+      shopify.toast.show(actionData.message);
+    }
+  }, [actionData, shopify]);
 
   return (
     <PricingHeader 

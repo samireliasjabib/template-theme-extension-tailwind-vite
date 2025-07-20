@@ -6,10 +6,10 @@ interface ActionBannerProps {
 }
 
 export function ActionBanner({ actionData }: ActionBannerProps) {
-  if (!actionData) return null;
+  if (!actionData || actionData.success) return null;
 
   return (
-    <Banner tone={actionData.success ? "success" : "critical"}>
+    <Banner tone="critical">
       <Text as="p" variant="bodySm">
         {actionData.message}
       </Text>
