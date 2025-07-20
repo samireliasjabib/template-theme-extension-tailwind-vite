@@ -1,5 +1,8 @@
-import { LoaderFunctionArgs } from "@remix-run/node";
-import { authenticate } from "app/server/shopify.server";
+import { LoaderFunctionArgs, ActionFunctionArgs } from "@remix-run/node";
+import { Form, useActionData, useSearchParams, useLoaderData } from "@remix-run/react";
+import { authenticate } from "../../server/shopify.server";
+import { completeOnboardingStep } from "../../server/installation/installation.service";
+import { upsertSubscription } from "../../server/subscription/subscription.repository";
 import {
   Page,
   Layout,
@@ -9,419 +12,205 @@ import {
   Badge,
   InlineStack,
   BlockStack,
-  Divider,
   Banner,
-  Icon,
   Box,
-  ProgressBar,
+  Icon,
 } from "@shopify/polaris";
 import {
   CheckIcon,
-  StarIcon,
-  ChartHistogramFullIcon,
-  PersonIcon,
-  CartIcon,
+  InfoIcon,
 } from "@shopify/polaris-icons";
 
 export const loader = async ({ request }: LoaderFunctionArgs) => {
   await authenticate.admin(request);
   
-  return null;
+  const url = new URL(request.url);
+  const isOnboarding = url.searchParams.get("onboarding") === "true";
+  
+  return { isOnboarding };
+};
+
+export const action = async ({ request }: ActionFunctionArgs) => {
+  const { session } = await authenticate.admin(request);
+  const formData = await request.formData();
+  const selectedPlan = formData.get("plan") as string;
+  
+  if (!selectedPlan) {
+    return { success: false, message: "No plan selected" };
+  }
+
+  try {
+    // Update subscription in database
+    await upsertSubscription(session.shop, {
+      planName: selectedPlan.toUpperCase(),
+      status: "TRIAL",
+      billingCycle: "MONTHLY",
+      trialEndsAt: new Date(Date.now() + 14 * 24 * 60 * 60 * 1000), // 14 days from now
+      currentPeriodEnd: new Date(Date.now() + 14 * 24 * 60 * 60 * 1000),
+    });
+
+    // Complete the SHOW_PLAN onboarding step
+    await completeOnboardingStep(session.shop, "SHOW_PLAN");
+
+    console.log(`✅ Plan ${selectedPlan} selected for ${session.shop}`);
+    
+    return { 
+      success: true, 
+      message: `${selectedPlan} plan selected successfully!`,
+      redirectTo: "/app/onboarding/video-demo"
+    };
+  } catch (error) {
+    console.error("Error selecting plan:", error);
+    return { 
+      success: false, 
+      message: error instanceof Error ? error.message : "Failed to select plan" 
+    };
+  }
 };
 
 export default function Pricing() {
-  // Simulated user order data - in real app this would come from API
-  const userMonthlyOrders = 350; // Example: user has 350 orders/month
-  
+  const { isOnboarding } = useLoaderData<typeof loader>();
+  const actionData = useActionData<typeof action>();
+
   const plans = [
     {
-      id: "starter",
-      name: "STARTER",
-      price: "$29",
-      period: "/month",
-      description: "Perfect for new stores getting started",
-      orderRange: "0-250 orders/month",
-      algorithm: "Smart Product Intelligence",
-      algorithmDescription: "AI analyzes your product catalog to find natural bundles using tags and vendor patterns",
+      id: "growth",
+      name: "Growth plan",
+      price: "Starting from $29.99/month",
+      priceDescription: "Charges increase based on store orders up to a maximum of $199.99/month.",
       features: [
-        { text: "AI bundle suggestions", icon: ChartHistogramFullIcon },
-        { text: "Cart drawer widget", icon: CartIcon },
-        { text: "Product catalog analysis", icon: CheckIcon },
-        { text: "Works immediately", icon: StarIcon },
-        { text: "Email support", icon: PersonIcon },
-        { text: "14-day free trial", icon: CheckIcon },
+        "High converting cart",
+        "Customizable design", 
+        "Countdown and announcements",
+        "Motivator bar for free shipping and discounts",
+        "Upsells and add-ons",
+        "Discount codes",
+        "Notes",
+        "Recommended for most stores"
       ],
-      buttonText: "Start Free Trial",
-      buttonVariant: "secondary" as const,
-      isPopular: false,
-      isRecommended: userMonthlyOrders <= 250,
-    },
-    {
-      id: "growing",
-      name: "GROWING",
-      price: "$59",
-      period: "/month",
-      description: "Perfect for growing stores with purchase data",
-      orderRange: "250-1000 orders/month",
-      algorithm: "Behavioral Learning AI",
-      algorithmDescription: "AI learns from customer purchase patterns and gets smarter as your store grows",
-      features: [
-        { text: "Everything in Starter", icon: CheckIcon },
-        { text: "Purchase pattern analysis", icon: ChartHistogramFullIcon },
-        { text: "Customer behavior insights", icon: PersonIcon },
-        { text: "Learning algorithms", icon: StarIcon },
-        { text: "Priority support", icon: PersonIcon },
-      ],
-      buttonText: "Start Free Trial",
-      buttonVariant: "primary" as const,
       isPopular: true,
-      isRecommended: userMonthlyOrders > 250 && userMonthlyOrders <= 1000,
+      buttonText: "Start 14-day free trial",
+      buttonVariant: "primary" as const,
     },
     {
-      id: "enterprise",
-      name: "ENTERPRISE",
-      price: "$149",
-      period: "/month",
-      description: "Perfect for high-volume stores with rich data",
-      orderRange: "1000+ orders/month",
-      algorithm: "Predictive Bundle Intelligence",
-      algorithmDescription: "Maximum accuracy AI with deep customer behavior analysis and predictive modeling",
+      id: "enterprise", 
+      name: "Enterprise plan",
+      price: "Fixed price of $299.00/month",
+      priceDescription: "Charges do not scale with orders. This should only be considered by larger stores.",
       features: [
-        { text: "Everything in Growing", icon: CheckIcon },
-        { text: "Predictive bundle suggestions", icon: ChartHistogramFullIcon },
-        { text: "API Headless", icon: StarIcon },
-        { text: "Dedicated success manager", icon: PersonIcon },
-        { text: "Custom API integrations", icon: CartIcon },
+        "High converting cart",
+        "Customizable design",
+        "Countdown and announcements", 
+        "Motivator bar for free shipping and discounts",
+        "Upsells and add-ons",
+        "Discount codes",
+        "Notes",
+        "Priority support in-app and via email"
       ],
-      buttonText: "Contact Sales",
-      buttonVariant: "secondary" as const,
       isPopular: false,
-      isRecommended: userMonthlyOrders > 1000,
-    },
+      buttonText: "Start 14-day free trial",
+      buttonVariant: "secondary" as const,
+    }
   ];
 
-  const getRecommendedPlan = () => {
-    return plans.find(plan => plan.isRecommended);
-  };
-
-  const recommendedPlan = getRecommendedPlan();
-
   return (
-    <Page title="Choose Your Plan">
+    <Page title={isOnboarding ? "Welcome to UpCart" : "Choose Your Plan"} subtitle="Step 1 of 3" >
       <Layout>
         <Layout.Section>
-          <BlockStack gap="800">
+          <BlockStack gap="600">
             {/* Header Section */}
-            <Box paddingBlockStart="400">
-              <BlockStack gap="400" align="center">
-                <Text as="h1" variant="heading2xl" alignment="center">
-                  Choose Your Plan
-                </Text>
-                <Text as="p" alignment="center" tone="subdued" variant="bodyLg">
-                  All plans include unlimited products and AI-powered bundle suggestions
-                </Text>
-              </BlockStack>
-            </Box>
+      
 
-            {/* Order Volume Banner with Polaris Progress Bar */}
-            <Banner
-              title={`Your store: ${userMonthlyOrders.toLocaleString()} orders/month`}
-              tone={recommendedPlan ? "info" : "warning"}
-            >
-              <BlockStack gap="300">
-                <Text as="p">
-                  {recommendedPlan 
-                    ? `We recommend the ${recommendedPlan.name} plan for your store size`
-                    : "Let us help you choose the perfect plan for your store"
-                  }
-                </Text>
-                
-                {/* Polaris Progress Bar */}
-                <Box>
-                  <BlockStack gap="200">
-                    <Text as="p" variant="bodyMd" fontWeight="medium">
-                      Plan recommendation based on your order volume:
-                    </Text>
-                    
-                    <ProgressBar 
-                      progress={Math.min(95, (userMonthlyOrders / 1200) * 100)} 
-                      size="medium"
-                      tone="highlight"
-                    />
-                    
-                    <InlineStack gap="400" align="space-between">
-                      <Text as="span" variant="bodySm" tone="subdued">
-                        Starter (0-250)
-                      </Text>
-                      <Text as="span" variant="bodySm" tone="subdued">
-                        Growing (250-1000)
-                      </Text>
-                      <Text as="span" variant="bodySm" tone="subdued">
-                        Enterprise (1000+)
-                      </Text>
-                    </InlineStack>
-                  </BlockStack>
-                </Box>
-                
-                <Text as="p" variant="bodyMd" tone="subdued">
-                  Join stores already using BundleAI to create product bundles
-                </Text>
-              </BlockStack>
+            {/* Information Banner */}
+            <Banner tone="info" icon={InfoIcon}>
+              <Text as="p" variant="bodySm">
+                To get started, you must select a pricing plan. All plans include a 14-day free trial and are shown in USD. Uninstalling within the first 14 days avoids all charges.
+              </Text>
             </Banner>
 
+            {/* Action Result */}
+            {actionData && (
+              <Banner tone={actionData.success ? "success" : "critical"}>
+                <Text as="p" variant="bodySm">
+                  {actionData.message}
+                </Text>
+              </Banner>
+            )}
+
             {/* Pricing Cards */}
-            <Box paddingBlockEnd="800">
-              <style>{`
-                .pricing-grid {
-                  display: grid;
-                  grid-template-columns: repeat(3, 1fr);
-                  gap: 1rem;
-                  align-items: stretch;
-                  margin-bottom: 2rem;
-                }
-                
-                .pricing-card {
-                  height: 100%;
-                  max-height: 600px;
-                  display: grid;
-                  grid-template-rows: auto auto auto 1fr auto;
-                  gap: 1rem;
-                  position: relative;
-                  overflow: hidden;
-                }
-                
-                .card-header {
-                  min-height: 140px;
-                }
-                
-                .algorithm-section {
-                  min-height: 100px;
-                  display: flex;
-                  align-items: flex-start;
-                }
-                
-                .features-section {
-                  min-height: 180px;
-                  display: flex;
-                  flex-direction: column;
-                  justify-content: flex-start;
-                }
-                
-                .cta-button-section {
-                  margin-top: auto;
-                }
-                
-                .floating-badges {
-                  position: absolute;
-                  top: 1rem;
-                  right: 1rem;
-                  z-index: 10;
-                  display: flex;
-                  flex-direction: column;
-                  gap: 0.25rem;
-                }
-                
-                .icon-container {
-                  width: 20px;
-                  display: flex;
-                  justify-content: center;
-                  align-items: center;
-                  flex-shrink: 0;
-                }
-                
-                @media (max-width: 1024px) {
-                  .pricing-grid {
-                    grid-template-columns: repeat(2, 1fr);
-                    gap: 1.5rem;
-                  }
-                  
-                  .pricing-card {
-                    max-height: none;
-                  }
-                }
-                
-                @media (max-width: 640px) {
-                  .pricing-grid {
-                    grid-template-columns: 1fr;
-                    gap: 1rem;
-                  }
-                  
-                  .card-header,
-                  .algorithm-section,
-                  .features-section {
-                    min-height: auto;
-                  }
-                  
-                  .pricing-card {
-                    display: flex;
-                    flex-direction: column;
-                    max-height: none;
-                  }
-                  
-                  .cta-button-section {
-                    margin-top: 1rem;
-                  }
-                }
-              `}</style>
-              
-              <div className="pricing-grid">
+            <Box paddingBlockEnd="600">
+              <div style={{
+                display: 'grid',
+                gridTemplateColumns: 'repeat(2, 1fr)',
+                gap: '1rem',
+                alignItems: 'stretch'
+              }}>
                 {plans.map((plan) => (
                   <Card key={plan.id}>
-                    <div className="pricing-card" style={{ padding: '1rem' }}>
-                      {/* Floating Badges */}
-                      <div className="floating-badges">
-                        {plan.isPopular && (
-                          <Badge tone="success">Most Popular</Badge>
-                        )}
-                        {plan.isRecommended && (
-                          <Badge tone="info">Recommended</Badge>
-                        )}
-                      </div>
-
-                      {/* Plan Header */}
-                      <div className="card-header">
+                    <Box padding="400">
+                      <BlockStack gap="400">
+                        {/* Plan Header */}
                         <BlockStack gap="200">
-                          <Text as="h3" variant="headingLg">
-                            {plan.name}
-                          </Text>
-                          
-                          <InlineStack gap="100" blockAlign="baseline">
-                            <Text as="span" variant="heading2xl" fontWeight="bold">
-                              {plan.price}
+                          <InlineStack gap="200" align="space-between">
+                            <Text as="h3" variant="headingMd" fontWeight="bold">
+                              {plan.name}
                             </Text>
-                            <Text as="span" tone="subdued" variant="bodyLg">
-                              {plan.period}
-                            </Text>
+                            {plan.isPopular && (
+                              <Badge tone="success">Most popular</Badge>
+                            )}
                           </InlineStack>
-                          
-                          <Text as="p" tone="subdued" variant="bodyMd">
-                            {plan.description}
+                        </BlockStack>
+
+                        {/* Pricing */}
+                        <BlockStack gap="150">
+                          <Text as="p" variant="bodySm" fontWeight="medium">
+                            Pricing
                           </Text>
-                          
-                          <Text as="p" variant="bodySm" tone="subdued" fontWeight="medium">
-                            {plan.orderRange}
+                          <Text as="p" variant="bodyMd" fontWeight="bold">
+                            {plan.price}
+                          </Text>
+                          <Text as="p" variant="bodySm" tone="subdued">
+                            {plan.priceDescription}
                           </Text>
                         </BlockStack>
-                      </div>
 
-                      {/* Algorithm Description */}
-                      <div className="algorithm-section">
-                        <Box 
-                          padding="300" 
-                          background="bg-surface-secondary"
-                          borderRadius="200"
-                        >
-                          <BlockStack gap="200">
-                            <Text as="p" variant="bodyMd" fontWeight="semibold">
-                              {plan.algorithm}
-                            </Text>
-                            <Text as="p" variant="bodySm" tone="subdued">
-                              {plan.algorithmDescription}
-                            </Text>
+                        {/* Features */}
+                        <BlockStack gap="150">
+                          <Text as="p" variant="bodySm" fontWeight="medium">
+                            Features
+                          </Text>
+                          <BlockStack gap="150">
+                            {plan.features.map((feature, index) => (
+                              <InlineStack key={index} gap="200" blockAlign="center">
+                                <BlockStack gap="200">
+                                  <Icon source={CheckIcon} tone="base" />
+                                </BlockStack>
+                                <Text as="p" variant="bodySm">
+                                  {feature}
+                                </Text>
+                              </InlineStack>
+                            ))}
                           </BlockStack>
-                        </Box>
-                      </div>
-
-                      {/* Divider */}
-                      <Divider />
-
-                      {/* Features List */}
-                      <div className="features-section">
-                        <BlockStack gap="200">
-                          {plan.features.map((feature, featureIndex) => (
-                            <InlineStack key={featureIndex} gap="300" blockAlign="center">
-                              <div className="icon-container">
-                                <Icon source={feature.icon} tone="base" />
-                              </div>
-                              <Text as="p" variant="bodyMd">
-                                {feature.text}
-                              </Text>
-                            </InlineStack>
-                          ))}
                         </BlockStack>
-                      </div>
 
-                      {/* CTA Button */}
-                      <div className="cta-button-section">
-                        <Button
-                          variant={plan.buttonVariant}
-                          size="large"
-                          fullWidth
-                        >
-                          {plan.buttonText}
-                        </Button>
-                      </div>
-                    </div>
+                        {/* CTA Button */}
+                        <Form method="post">
+                          <input type="hidden" name="plan" value={plan.id} />
+                          <Button
+                            variant={plan.buttonVariant}
+                            size="medium"
+                            fullWidth
+                            submit
+                          >
+                            {plan.buttonText}
+                          </Button>
+                        </Form>
+                      </BlockStack>
+                    </Box>
                   </Card>
                 ))}
               </div>
             </Box>
-
-            {/* Realistic Value Proposition - MOVED AFTER PRICING */}
-            <Card>
-              <Box padding="400">
-                <BlockStack gap="400" align="center">
-                  {/* Main headline - more realistic */}
-                  <Box 
-                    padding="400" 
-                    background="bg-surface-secondary"
-                    borderRadius="200"
-                  >
-                    <BlockStack gap="200" align="center">
-                      <Text as="h2" variant="headingMd" alignment="center">
-                        Start creating product bundles in minutes
-                      </Text>
-                      <Text as="p" variant="bodyMd" tone="subdued" alignment="center">
-                        AI-powered suggestions help you identify products that work well together
-                      </Text>
-                    </BlockStack>
-                  </Box>
-
-                  {/* Realistic benefits */}
-                  <InlineStack gap="600" align="center" wrap={true}>
-                    <InlineStack gap="200" blockAlign="center">
-                      <Icon source={CheckIcon} tone="success" />
-                      <BlockStack gap="050">
-                        <Text as="span" variant="bodyMd" fontWeight="medium">Easy setup</Text>
-                        <Text as="span" variant="bodySm" tone="subdued">Install in 5 minutes</Text>
-                      </BlockStack>
-                    </InlineStack>
-
-                    <InlineStack gap="200" blockAlign="center">
-                      <Icon source={CheckIcon} tone="success" />
-                      <BlockStack gap="050">
-                        <Text as="span" variant="bodyMd" fontWeight="medium">No commitments</Text>
-                        <Text as="span" variant="bodySm" tone="subdued">Cancel anytime</Text>
-                      </BlockStack>
-                    </InlineStack>
-
-                    <InlineStack gap="200" blockAlign="center">
-                      <Icon source={CheckIcon} tone="success" />
-                      <BlockStack gap="050">
-                        <Text as="span" variant="bodyMd" fontWeight="medium">Free trial included</Text>
-                        <Text as="span" variant="bodySm" tone="subdued">14 days to try</Text>
-                      </BlockStack>
-                    </InlineStack>
-                  </InlineStack>
-
-                  {/* Trust indicator - Sales focused */}
-                  <Box 
-                    padding="300" 
-                    background="bg-surface-info"
-                    borderRadius="200"
-                  >
-                    <InlineStack gap="200" blockAlign="center" align="center">
-                      <Box>
-                        <Icon source={ChartHistogramFullIcon} tone="base" />
-                      </Box>
-                      <Text as="p" variant="bodyMd" alignment="center">
-                        <Text as="span" fontWeight="semibold">Increase your average order value</Text> with AI-powered suggestions
-                      </Text>
-                    </InlineStack>
-                  </Box>
-                </BlockStack>
-              </Box>
-            </Card>
           </BlockStack>
         </Layout.Section>
       </Layout>

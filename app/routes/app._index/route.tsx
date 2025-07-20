@@ -10,6 +10,7 @@ import {
 } from "@shopify/polaris";
 import { TitleBar, useAppBridge } from "@shopify/app-bridge-react";
 import { authenticate } from "../../server/shopify.server";
+import { validateAndHandleInstallation } from "../../server/installation/installation.service";
 
 // Import atomic components and constants
 import {
@@ -22,7 +23,26 @@ import {
 import { PERIOD_OPTIONS, PERFORMANCE_DATA, ACTIVITY_DATA } from "./constants";
 
 export const loader = async ({ request }: LoaderFunctionArgs) => {
-  await authenticate.admin(request);
+  const { session, redirect } = await authenticate.admin(request);
+
+  // Get shop domain from the session
+  const shop = session?.shop;
+  
+  if (!shop) {
+    throw new Error("Shop domain not found in session");
+  }
+
+  // Check installation status and handle redirects
+  try {
+    const installationResult = await validateAndHandleInstallation(session);
+    if (installationResult.shouldRedirect) {
+      return redirect(installationResult.redirectPath);
+    }
+  } catch (error) {
+    console.error("Error checking installation status:", error);
+    // Continue to dashboard even if there's an error
+  }
+
   return null;
 };
 

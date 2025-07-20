@@ -23,13 +23,7 @@ const shopify = shopifyApp({
   },
   hooks: {
     afterAuth: async ({ session }) => {
-      const { store, onboardingInfo } = await registerInstallation(session);
-      
-      console.log(`Store ${store.shopifyDomain} installed.`);
-      console.log(`Onboarding: ${onboardingInfo.message}`);
-      console.log(`Is first install: ${onboardingInfo.isFirstInstall}`);
-      
-      // ... billing / webhook registration comes later ...
+      await registerInstallation(session);
     },
   },
   ...(process.env.SHOP_CUSTOM_DOMAIN

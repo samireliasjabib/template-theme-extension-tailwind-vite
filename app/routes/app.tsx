@@ -10,9 +10,19 @@ import { authenticate } from "../server/shopify.server";
 export const links = () => [{ rel: "stylesheet", href: polarisStyles }];
 
 export const loader = async ({ request }: LoaderFunctionArgs) => {
-  await authenticate.admin(request);
+  const { session } = await authenticate.admin(request);
 
-  return { apiKey: process.env.SHOPIFY_API_KEY || "" };
+  // Get shop domain from the session
+  const shop = session?.shop;
+  
+  if (!shop) {
+    throw new Error("Shop domain not found in session");
+  }
+
+  return { 
+    apiKey: process.env.SHOPIFY_API_KEY || "",
+    shop
+  };
 };
 
 export default function App() {

@@ -70,4 +70,4 @@ export async function getNextConfigStep(storeId: string) {
     },
     orderBy: { order: 'asc' }
   });
-} 
+}
