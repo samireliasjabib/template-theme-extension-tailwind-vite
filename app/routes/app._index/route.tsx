@@ -2,9 +2,7 @@ import { useEffect, useState } from "react";
 import type { ActionFunctionArgs, LoaderFunctionArgs } from "@remix-run/node";
 import { useFetcher } from "@remix-run/react";
 import {
-  BlockStack,
   Grid,
-  InlineStack,
   Layout,
   Page,
 } from "@shopify/polaris";
@@ -26,110 +24,34 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
   const { session, redirect } = await authenticate.admin(request);
 
   // Get shop domain from the session
-  const shop = session?.shop;
+  // const shop = session?.shop;
   
-  if (!shop) {
-    throw new Error("Shop domain not found in session");
-  }
+  // if (!shop) {
+  //   throw new Error("Shop domain not found in session");
+  // }
 
-  // Check installation status and handle redirects
-  try {
-    const installationResult = await validateAndHandleInstallation(session);
-    if (installationResult.shouldRedirect) {
-      return redirect(installationResult.redirectPath);
-    }
-  } catch (error) {
-    console.error("Error checking installation status:", error);
-    // Continue to dashboard even if there's an error
-  }
+  // // Check installation status and handle redirects
+  // try {
+  //   const installationResult = await validateAndHandleInstallation(session);
+  //   if (installationResult.shouldRedirect) {
+  //     return redirect(installationResult.redirectPath);
+  //   }
+  // } catch (error) {
+  //   console.error("Error checking installation status:", error);
+  //   // Continue to dashboard even if there's an error
+  // }
 
   return null;
 };
 
-export const action = async ({ request }: ActionFunctionArgs) => {
-  const { admin } = await authenticate.admin(request);
-  const color = ["Red", "Orange", "Yellow", "Green"][
-    Math.floor(Math.random() * 4)
-  ];
-  const response = await admin.graphql(
-    `#graphql
-      mutation populateProduct($product: ProductCreateInput!) {
-        productCreate(product: $product) {
-          product {
-            id
-            title
-            handle
-            status
-            variants(first: 10) {
-              edges {
-                node {
-                  id
-                  price
-                  barcode
-                  createdAt
-                }
-              }
-            }
-          }
-        }
-      }`,
-    {
-      variables: {
-        product: {
-          title: `${color} Snowboard`,
-        },
-      },
-    },
-  );
-  const responseJson = await response.json();
 
-  const product = responseJson.data!.productCreate!.product!;
-  const variantId = product.variants.edges[0]!.node!.id!;
-
-  const variantResponse = await admin.graphql(
-    `#graphql
-    mutation shopifyRemixTemplateUpdateVariant($productId: ID!, $variants: [ProductVariantsBulkInput!]!) {
-      productVariantsBulkUpdate(productId: $productId, variants: $variants) {
-        productVariants {
-          id
-          price
-          barcode
-          createdAt
-        }
-      }
-    }`,
-    {
-      variables: {
-        productId: product.id,
-        variants: [{ id: variantId, price: "100.00" }],
-      },
-    },
-  );
-
-  const variantResponseJson = await variantResponse.json();
-
-  return {
-    product: responseJson!.data!.productCreate!.product,
-    variant:
-      variantResponseJson!.data!.productVariantsBulkUpdate!.productVariants,
-  };
-};
 
 export default function Index() {
-  const fetcher = useFetcher<typeof action>();
   const [selectedPeriod, setSelectedPeriod] = useState('month');
-  const shopify = useAppBridge();
 
-  const productId = fetcher.data?.product?.id.replace(
-    "gid://shopify/Product/",
-    "",
-  );
+ 
 
-  useEffect(() => {
-    if (productId) {
-      shopify.toast.show("Product created");
-    }
-  }, [productId, shopify]);
+
 
   // Handler for period change
   const handlePeriodChange = (value: string) => setSelectedPeriod(value);

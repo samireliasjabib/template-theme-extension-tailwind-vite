@@ -1,6 +1,5 @@
-import { LoaderFunctionArgs, ActionFunctionArgs, redirect } from "@remix-run/node";
+import { LoaderFunctionArgs, ActionFunctionArgs } from "@remix-run/node";
 import { useActionData, useLoaderData } from "@remix-run/react";
-import { useAppBridge } from "@shopify/app-bridge-react";
 import { authenticate } from "../../server/shopify.server";
 import { completeOnboardingStep } from "../../server/installation/installation.service";
 import { upsertSubscription } from "../../server/subscription/subscription.repository";
@@ -9,6 +8,7 @@ import { PricingHeader, PricingBanner, ActionBanner, PricingGrid } from "./compo
 import { PLANS } from "./constants";
 import type { ActionData, LoaderData } from "./types";
 import { useEffect } from "react";
+import { createUsageBasedSubscription } from "./services/subscription.service";
 
 export const loader = async ({ request }: LoaderFunctionArgs) => {
   await authenticate.admin(request);
@@ -20,36 +20,41 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
 };
 
 export const action = async ({ request }: ActionFunctionArgs) => {
-  const { session, redirect: redirectShopify } = await authenticate.admin(request);
+  const { session, redirect: shopifyRedirect } = await authenticate.admin(request);
   const formData = await request.formData();
   const selectedPlan = formData.get("plan") as string;
-  
+
   if (!selectedPlan) {
     return { success: false, message: "No plan selected" };
   }
 
   try {
-    // Update subscription in database
+    // Update subscription in your database (optional, for your own tracking)
     await upsertSubscription(session.shop, {
       planName: selectedPlan.toUpperCase(),
       status: "TRIAL",
       billingCycle: "MONTHLY",
-      trialEndsAt: new Date(Date.now() + 14 * 24 * 60 * 60 * 1000), // 14 days from now
+      trialEndsAt: new Date(Date.now() + 14 * 24 * 60 * 60 * 1000),
       currentPeriodEnd: new Date(Date.now() + 14 * 24 * 60 * 60 * 1000),
     });
 
-    // Complete the SHOW_PLAN onboarding step
     await completeOnboardingStep(session.shop, "SHOW_PLAN");
 
-    console.log(`✅ Plan ${selectedPlan} selected for ${session.shop}`);
-    
-    // Use Remix redirect instead of client-side redirect
-    return redirectShopify("/app/onboarding/video-demo");
+    // Create Shopify usage-based subscription
+    const result = await createUsageBasedSubscription(request, selectedPlan);
+
+    if (result.confirmationUrl) {
+      console.log("🔗 Redirecting to Shopify billing:", result.confirmationUrl);
+      // Use Shopify's redirect method for embedded apps
+      return shopifyRedirect(result.confirmationUrl);
+    } else {
+      throw new Error("No confirmation URL received");
+    }
   } catch (error) {
-    console.error("Error selecting plan:", error);
-    return { 
-      success: false, 
-      message: error instanceof Error ? error.message : "Failed to select plan" 
+    console.error("Error creating subscription:", error);
+    return {
+      success: false,
+      message: error instanceof Error ? error.message : "Failed to create subscription"
     };
   }
 };
@@ -57,13 +62,12 @@ export const action = async ({ request }: ActionFunctionArgs) => {
 export default function Pricing() {
   const { isOnboarding } = useLoaderData<LoaderData>();
   const actionData = useActionData<ActionData>();
-  const shopify = useAppBridge();
 
   useEffect(() => {
-    if (actionData?.success) {
-      shopify.toast.show(actionData.message);
+    if (actionData?.success === false) {
+      console.error("Plan selection failed:", actionData.message);
     }
-  }, [actionData, shopify]);
+  }, [actionData]);
 
   return (
     <PricingHeader 

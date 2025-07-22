@@ -3,7 +3,7 @@
 client_id = "9db355888f27c083071def35f3a1c226"
 name = "testing-react-extension"
 handle = "testing-react-extension"
-application_url = "https://taste-signatures-boots-sbjct.trycloudflare.com"
+application_url = "https://placing-utilities-toolbox-abandoned.trycloudflare.com"
 embedded = true
 
 [build]
@@ -26,10 +26,10 @@ api_version = "2025-04"
 scopes = "write_products,read_products"
 
 [auth]
-redirect_urls = ["https://taste-signatures-boots-sbjct.trycloudflare.com/auth/callback", "https://taste-signatures-boots-sbjct.trycloudflare.com/auth/shopify/callback", "https://taste-signatures-boots-sbjct.trycloudflare.com/api/auth/callback"]
+redirect_urls = ["https://placing-utilities-toolbox-abandoned.trycloudflare.com/auth/callback", "https://placing-utilities-toolbox-abandoned.trycloudflare.com/auth/shopify/callback", "https://placing-utilities-toolbox-abandoned.trycloudflare.com/api/auth/callback"]
 
 [app_proxy]
-url = "https://taste-signatures-boots-sbjct.trycloudflare.com/api/proxy"
+url = "https://placing-utilities-toolbox-abandoned.trycloudflare.com/api/proxy"
 subpath = "recommendations"
 prefix = "apps"
 

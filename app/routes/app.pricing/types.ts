@@ -13,6 +13,7 @@ export interface ActionData {
   success: boolean;
   message: string;
   redirectTo?: string;
+  confirmationUrl?: string;
 }
 
 export interface LoaderData {
