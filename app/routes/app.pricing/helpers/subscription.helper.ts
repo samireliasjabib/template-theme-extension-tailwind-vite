@@ -31,17 +31,6 @@ export function buildSubscriptionConfig(plan: PricingTier, shop: string, returnU
           interval: "EVERY_30_DAYS"
         }
       }
-    },
-    {
-      plan: {
-        appUsagePricingDetails: {
-          terms: plan.usageTerms,
-          cappedAmount: {
-            amount: plan.cappedAmount - plan.basePrice,
-            currencyCode: "USD"
-          }
-        }
-      }
     }
   ];
 
@@ -66,6 +55,6 @@ export function buildSubscriptionConfig(plan: PricingTier, shop: string, returnU
     name: plan.name,
     returnUrl,
     lineItems,
-    isTest
+    test: isTest  // ✅ Use 'test' not 'isTest'
   };
 } 
