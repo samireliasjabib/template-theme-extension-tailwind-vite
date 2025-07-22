@@ -1,14 +1,11 @@
 import { LoaderFunctionArgs, ActionFunctionArgs } from "@remix-run/node";
 import { useActionData, useLoaderData } from "@remix-run/react";
 import { authenticate } from "../../server/shopify.server";
-import { completeOnboardingStep } from "../../server/installation/installation.service";
-import { upsertSubscription } from "../../server/subscription/subscription.repository";
 import { Layout, BlockStack } from "@shopify/polaris";
 import { PricingHeader, PricingBanner, ActionBanner, PricingGrid } from "./components";
 import { PLANS } from "./constants";
 import type { ActionData, LoaderData } from "./types";
-import { useEffect } from "react";
-import { createUsageBasedSubscription } from "./services/subscription.service";
+import { handlePlanSelection, createShopifySubscription } from "./helpers/action.helper";
 
 export const loader = async ({ request }: LoaderFunctionArgs) => {
   await authenticate.admin(request);
@@ -29,27 +26,15 @@ export const action = async ({ request }: ActionFunctionArgs) => {
   }
 
   try {
-    // Update subscription in your database (optional, for your own tracking)
-    await upsertSubscription(session.shop, {
-      planName: selectedPlan.toUpperCase(),
-      status: "TRIAL",
-      billingCycle: "MONTHLY",
-      trialEndsAt: new Date(Date.now() + 14 * 24 * 60 * 60 * 1000),
-      currentPeriodEnd: new Date(Date.now() + 14 * 24 * 60 * 60 * 1000),
-    });
-
-    await completeOnboardingStep(session.shop, "SHOW_PLAN");
-
-    // Create Shopify usage-based subscription
-    const result = await createUsageBasedSubscription(request, selectedPlan);
-
-    if (result.confirmationUrl) {
-      console.log("🔗 Redirecting to Shopify billing:", result.confirmationUrl);
-      // Use Shopify's redirect method for embedded apps
-      return shopifyRedirect(result.confirmationUrl);
-    } else {
-      throw new Error("No confirmation URL received");
-    }
+    // Handle plan selection and database updates
+    await handlePlanSelection(selectedPlan, session.shop);
+    
+    // Create Shopify subscription and get confirmation URL
+    const confirmationUrl = await createShopifySubscription(request, selectedPlan);
+    
+    console.log("🔗 Redirecting to Shopify billing:", confirmationUrl);
+    return shopifyRedirect(confirmationUrl);
+    
   } catch (error) {
     console.error("Error creating subscription:", error);
     return {
@@ -62,12 +47,6 @@ export const action = async ({ request }: ActionFunctionArgs) => {
 export default function Pricing() {
   const { isOnboarding } = useLoaderData<LoaderData>();
   const actionData = useActionData<ActionData>();
-
-  useEffect(() => {
-    if (actionData?.success === false) {
-      console.error("Plan selection failed:", actionData.message);
-    }
-  }, [actionData]);
 
   return (
     <PricingHeader 
