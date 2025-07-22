@@ -6,6 +6,7 @@ import { PricingHeader, PricingBanner, ActionBanner, PricingGrid } from "./compo
 import { PLANS } from "./constants";
 import type { ActionData, LoaderData } from "./types";
 import { handlePlanSelection, createShopifySubscription } from "./helpers/action.helper";
+import { useEffect } from "react";
 
 export const loader = async ({ request }: LoaderFunctionArgs) => {
   await authenticate.admin(request);
@@ -31,9 +32,11 @@ export const action = async ({ request }: ActionFunctionArgs) => {
     
     // Create Shopify subscription and get confirmation URL
     const confirmationUrl = await createShopifySubscription(request, selectedPlan);
-    
-    console.log("🔗 Redirecting to Shopify billing:", confirmationUrl);
-    return shopifyRedirect(confirmationUrl);
+
+    return {
+      success: true,
+      confirmationUrl
+    };
     
   } catch (error) {
     console.error("Error creating subscription:", error);
@@ -47,6 +50,15 @@ export const action = async ({ request }: ActionFunctionArgs) => {
 export default function Pricing() {
   const { isOnboarding } = useLoaderData<LoaderData>();
   const actionData = useActionData<ActionData>();
+
+
+  useEffect(() => {
+    if (actionData?.success && actionData?.confirmationUrl) {
+      console.log("🔗 Redirecting to Shopify billing:", actionData.confirmationUrl);
+      window.location.href = actionData.confirmationUrl;
+    }
+
+  }, [actionData]);
 
   return (
     <PricingHeader 
